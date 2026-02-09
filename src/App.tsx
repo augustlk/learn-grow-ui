@@ -7,6 +7,11 @@ import Index from "./pages/Index";
 import Profile from "./pages/Profile";
 import Lesson from "./pages/Lesson";
 import Quiz from "./pages/Quiz";
+import Auth from "./pages/Auth";
+import Streaks from "./pages/Streaks";
+import Settings from "./pages/Settings";
+import About from "./pages/About";
+import HelperBot from "./pages/HelperBot";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +27,11 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/lesson" element={<Lesson />} />
           <Route path="/quiz" element={<Quiz />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/streaks" element={<Streaks />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/bot" element={<HelperBot />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
