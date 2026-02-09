@@ -1,4 +1,4 @@
-import { X, User, BookOpen, Flame, Settings, Info, MessageCircle } from "lucide-react";
+import { X, User, BookOpen, Flame, Settings, Info, MessageCircle, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface AppMenuProps {
@@ -9,10 +9,11 @@ interface AppMenuProps {
 const menuItems = [
   { icon: User, label: "Profile", description: "View streaks, badges, progress", path: "/profile" },
   { icon: BookOpen, label: "Lessons", description: "What would you like to learn next?", path: "/" },
-  { icon: Flame, label: "Streaks", description: "Don't miss your daily goals!", path: "/profile" },
-  { icon: Settings, label: "Settings", description: "Adjust your preferences", path: "/" },
-  { icon: Info, label: "About", description: "Learn about our mission", path: "/" },
-  { icon: MessageCircle, label: "Helper Bot", description: "Ask our bot questions as you go!", path: "/" },
+  { icon: Flame, label: "Streaks", description: "Don't miss your daily goals!", path: "/streaks" },
+  { icon: Settings, label: "Settings", description: "Adjust your preferences", path: "/settings" },
+  { icon: Info, label: "About", description: "Learn about our mission", path: "/about" },
+  { icon: MessageCircle, label: "Helper Bot", description: "Ask our bot questions as you go!", path: "/bot" },
+  { icon: LogIn, label: "Sign In / Sign Up", description: "Create or access your account", path: "/auth" },
 ];
 
 const AppMenu = ({ isOpen, onClose }: AppMenuProps) => {
