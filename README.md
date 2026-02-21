@@ -2,7 +2,7 @@
 
 ## 1. App Summary
 
-Learn & Grow is a gamified nutrition education web application designed to help everyday users build healthy eating habits through structured, bite-sized lessons and quizzes. The problem it addresses is simple: most people lack reliable, engaging, and accessible nutrition knowledge, and existing resources are either too technical or too passive to drive real behavior change. The primary user is a health-conscious individual — a student, young professional, or anyone beginning their wellness journey — who wants to learn about nutrition in an interactive, trackable way. The application presents a sequence of lessons (e.g., Nutrition Basics, Proteins, Healthy Fats) that unlock progressively as the user advances. After reading each lesson, users can take a quiz and must score 60% or higher to mark it complete. Progress is saved to a PostgreSQL database so that users can pick up exactly where they left off across sessions.
+Learn & Grow is a nutrition education web application built for busy young adults who want to understand food without the overwhelm of diet culture or calorie tracking. The core problem it addresses is that most people lack foundational nutrition knowledge — not because they don't care, but because existing resources are either too clinical, too prescriptive, or too time-consuming to fit into a real daily routine. Rather than telling users what to eat, Learn & Grow focuses on education and understanding: how different nutrients affect the body, how to read food labels confidently, and how to apply nutrition principles to their own goals and preferences. The platform delivers this through short, interactive lessons backed by science and grounded in real-world food examples, paired with light gamification to keep users engaged and motivated. Lessons unlock progressively as users advance, and a quiz at the end of each lesson (requiring 60% or higher to pass) reinforces learning before moving on. Progress is persisted to a PostgreSQL database so users can pick up exactly where they left off across sessions.
 
 ---
 
@@ -91,17 +91,15 @@ bun install
    CREATE DATABASE nutrition_lessons;
    ```
 
-4. **Run the schema** to create all tables. In `psql`:
-   ```sh
-   psql -U postgres -d nutrition_lessons -f schema.sql
-   ```
-   Or open `schema.sql` from the project root in pgAdmin and execute it.
+3. **Create the database schema**:
+   - Open [schema.sql](schema.sql) from the project root
+   - Copy and paste the contents into your PostgreSQL client (pgAdmin, psql, etc.)
+   - Execute the SQL to create the `users` and `user_lessons` tables
 
-5. **Seed the database** with sample users and lessons:
-   ```sh
-   psql -U postgres -d nutrition_lessons -f seed.sql
-   ```
-   Or open `seed.sql` in pgAdmin and execute it.
+4. **Seed the database** with sample data:
+   - Open [seed.sql](seed.sql) from the project root
+   - Copy and paste the contents into your PostgreSQL client
+   - Execute the SQL to populate the database with sample users and lessons
 
 ### Step 4: Configure Environment Variables
 
@@ -164,23 +162,17 @@ The application will automatically log you in as the demo user Alice. The home p
 2. **Proteins** — In Progress
 3. **Healthy Fats** — Locked
 
-To stop the application, press `Ctrl+C` in both terminal windows.
-
----
 
 ## 7. Verifying the Vertical Slice
 
 This section walks through the full vertical slice: triggering a feature in the UI, confirming the database was updated, and verifying the change persists after a page refresh.
 
-**The feature:** Completing the "Proteins" quiz marks the lesson as `Completed` in the database and unlocks the next lesson ("Healthy Fats").
+**The feature:** Completing the "Proteins" quiz marks the lesson as `Completed` in the database.
 
 ### Steps to trigger the feature:
 
-1. Open the app at `http://localhost:8080` — you should see the three lessons with "Proteins" marked as In Progress.
-2. Click on **"Proteins"** to open the lesson and read through the material.
-3. Click **"Quiz Me"** to start the quiz.
-4. Answer the questions and submit. You need a score of **60% or higher** to pass.
-5. Upon passing, the app will mark "Proteins" as Completed and "Healthy Fats" should become unlocked on the home screen.
+1. **View a lesson**: Click on "Proteins" to read the lesson material
+2. **Take a quiz**: Click "Quiz Me" to attempt the quiz (get 60% or higher to pass)
 
 ### Confirm the database was updated:
 
@@ -196,3 +188,36 @@ You should see a row for `lesson_id = 2` (Proteins) with `status = 'Completed'` 
 
 1. Refresh the browser page (`Ctrl+R` or `F5`).
 2. The home screen should still show **Proteins** as Completed and **Healthy Fats** as unlocked — confirming the state was read back from the database and not just held in memory.
+
+### Troubleshooting
+
+**Issue: "Cannot connect to database"**
+- Ensure PostgreSQL is running on your machine
+- Verify the database credentials in `.env` match your PostgreSQL setup
+- Check that the `nutrition_lessons` database exists
+
+**Issue: "API not responding" (port 3000 error)**
+- Ensure the API server is running in Terminal 1 (`npm run api`)
+- Check that port 3000 is not in use by another application
+- Verify the `.env` file has `API_PORT=3000`
+
+**Issue: "Page showing 'Connecting to API...'" for a long time**
+- Check that both servers are running (Terminal 1 and Terminal 2)
+- Open browser Developer Tools (F12) → Console tab to see any error messages
+- Verify `VITE_API_URL=http://localhost:3000` in `.env`
+
+**Issue: "Cannot find module" after fresh install**
+- Try deleting `node_modules` folder and `.env` cache:
+  ```sh
+  rm -r node_modules
+  npm install
+  ```
+- Or on Windows:
+  ```powershell
+  Remove-Item -Recurse node_modules
+  npm install
+  ```
+
+### Stopping the Application
+
+Press `Ctrl+C` in both terminal windows to stop the servers.
