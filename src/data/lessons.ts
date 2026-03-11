@@ -24,7 +24,7 @@ export const lessons: Lesson[] = [
     "status": "active",
     "category": "Nutrition Basics",
     "level": 1,
-    "extraLinks": "https://sqltutorial.com"
+    "extraLinks": "https://www.nutrition.gov"
   },
   {
     "id": 2,
@@ -85,6 +85,49 @@ export interface QuizQuestion {
   explanation: string;
 }
 
+export const lesson1Quiz: QuizQuestion[] = [
+  {
+    id: 1,
+    question: "What is nutrition?",
+    image: "🥗",
+    options: ["The study of exercise", "How your body uses food and drinks", "A type of diet plan", "The number of calories in food"],
+    correctIndex: 1,
+    explanation: "Nutrition is the science of how your body uses the food and drinks you consume to get energy, build structures, and stay healthy."
+  },
+  {
+    id: 2,
+    question: "How many essential nutrients does the human body rely on?",
+    image: "🔢",
+    options: ["3", "4", "5", "6"],
+    correctIndex: 3,
+    explanation: "The six essential nutrients are carbohydrates, proteins, fats, vitamins, minerals, and water."
+  },
+  {
+    id: 3,
+    question: "Which group of nutrients does your body need in the LARGEST amounts?",
+    image: "🍞",
+    options: ["Vitamins", "Minerals", "Macronutrients", "Antioxidants"],
+    correctIndex: 2,
+    explanation: "Macronutrients (carbs, proteins, and fats) are needed in large amounts and provide the bulk of your energy and structural materials."
+  },
+  {
+    id: 4,
+    question: "Which of these is an example of a micronutrient?",
+    image: "🍊",
+    options: ["Carbohydrate", "Fat", "Protein", "Vitamin C"],
+    correctIndex: 3,
+    explanation: "Vitamins and minerals are micronutrients, meaning they are needed in small amounts but are essential for health. Vitamin C supports your immune system."
+  },
+  {
+    id: 5,
+    question: "About how much of your body weight is water?",
+    image: "💧",
+    options: ["20%", "40%", "60%", "80%"],
+    correctIndex: 2,
+    explanation: "Water makes up approximately 60% of your body and is involved in nearly every bodily process, from digestion to temperature regulation."
+  },
+];
+
 export const sampleQuiz: QuizQuestion[] = [
   {
     id: 1, question: "What type of nutrient is chicken?",
@@ -114,24 +157,29 @@ export const sampleQuiz: QuizQuestion[] = [
 ];
 
 export const lessonContent = {
-  title: "Nutrition Basics",
+  title: "Introduction to Nutrition",
   duration: "5 min",
   sections: [
     {
-      heading: "What are Macronutrients?",
-      content: "Macronutrients are the nutrients your body needs in large amounts to function properly. There are three main types: proteins, carbohydrates, and fats. Each plays a unique role in keeping you healthy and energized.",
+      heading: "What is Nutrition?",
+    content: "Nutrition is the science of how your body uses the food and drinks you consume. Every bite you take gives your body something to work with, whether that is energy to move, materials to build cells, or tools to fight off illness. Good nutrition means giving your body the right things in the right amounts.",
     },
     {
-      heading: "Proteins — Your Body's Building Blocks",
-      content: "Protein helps build and repair muscles, skin, and organs. Good sources include chicken, fish, beans, eggs, and tofu. Aim to include a protein source in every meal.",
+      heading: "The 6 Essential Nutrients",
+      content: "Your body relies on six types of essential nutrients: carbohydrates, proteins, fats, vitamins, minerals, and water. Essential means your body cannot make enough of them on its own, so you have to get them from food. Each one plays a unique role in keeping you healthy and functioning.",
     },
     {
-      heading: "Carbohydrates — Your Energy Source",
-      content: "Carbs are your body's preferred fuel. Choose complex carbs like whole grains, fruits, and vegetables over simple sugars. They provide sustained energy throughout the day.",
+      heading: "Macronutrients: Your Body's Fuel",
+      content: "Carbohydrates, proteins, and fats are called macronutrients because your body needs them in large amounts. Carbs are your primary energy source; proteins build and repair tissues; fats support brain function and hormone production. A balanced meal includes all three.",
     },
     {
-      heading: "Fats — Essential, Not Evil",
-      content: "Healthy fats support brain function and hormone production. Focus on unsaturated fats from sources like olive oil, nuts, avocados, and fatty fish. Limit trans fats and excessive saturated fats.",
+      heading: "Micronutrients: Small but Mighty",
+      content: "Vitamins and minerals are called micronutrients. You only need them in small amounts, but they are critical for your health. For example, Vitamin C helps your immune system, calcium keeps bones strong, and iron carries oxygen in your blood. A varied diet is the best way to cover your micronutrient needs.",
+    },
+    {
+      heading: "Water: The Overlooked Nutrient",
+      content: "Water makes up about 60% of your body and is involved in nearly every process, from digesting food to regulating your temperature. Most people need 6 to 8 cups per day. Even mild dehydration can cause fatigue, poor concentration, and headaches.",
     },
   ],
+  keyTakeaway: "Nutrition is the foundation of your health. Your body needs six essential nutrients every day: carbs, proteins, fats, vitamins, minerals, and water. The food choices you make regularly have a real impact on how you feel and perform.",
 };

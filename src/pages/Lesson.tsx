@@ -14,23 +14,31 @@ const Lesson = () => {
   // Lesson content for each lesson
   const lessonContentMap: Record<number, any> = {
     1: {
-      title: "Nutrition Basics",
+      title: "Introduction to Nutrition",
       duration: "5 min",
       sections: [
         {
-          heading: "What are Macronutrients?",
-          content: "Macronutrients are the three main types of nutrients your body needs in large quantities: carbohydrates, proteins, and fats. These provide energy and build the structures in your body."
+          heading: "What is Nutrition?",
+          content: "Nutrition is the science of how your body uses the food and drinks you consume. Every bite you take gives your body something to work with, whether that is energy to move, materials to build cells, or tools to fight off illness. Good nutrition means giving your body the right things in the right amounts."
         },
         {
-          heading: "Carbohydrates",
-          content: "Carbs are your body's primary energy source. They're found in foods like grains, fruits, and vegetables. Choose whole grains for sustained energy and better nutrition."
+          heading: "The 6 Essential Nutrients",
+          content: "Your body relies on six types of essential nutrients: carbohydrates, proteins, fats, vitamins, minerals, and water. Essential means your body cannot make enough of them on its own, so you have to get them from food. Each one plays a unique role in keeping you healthy and functioning."
         },
         {
-          heading: "Proteins",
-          content: "Proteins build and repair muscles, skin, and other tissues. Great sources include chicken, fish, eggs, beans, and nuts. Everyone needs protein daily!"
+          heading: "Macronutrients: Your Body's Fuel",
+          content: "Carbohydrates, proteins, and fats are called macronutrients because your body needs them in large amounts. Carbs are your primary energy source; proteins build and repair tissues; fats support brain function and hormone production. A balanced meal includes all three."
+        },
+        {
+          heading: "Micronutrients: Small but Mighty",
+          content: "Vitamins and minerals are called micronutrients. You only need them in small amounts, but they are critical for your health. For example, Vitamin C helps your immune system, calcium keeps bones strong, and iron carries oxygen in your blood. A varied diet is the best way to cover your micronutrient needs."
+        },
+        {
+          heading: "Water: The Overlooked Nutrient",
+          content: "Water makes up about 60% of your body and is involved in nearly every process, from digesting food to regulating your temperature. Most people need 6 to 8 cups per day. Even mild dehydration can cause fatigue, poor concentration, and headaches."
         }
       ],
-      keyTakeaway: "A balanced diet includes all three macronutrients. Carbs for energy, protein for building, and fat for hormone production and nutrient absorption."
+      keyTakeaway: "Nutrition is the foundation of your health. Your body needs six essential nutrients every day: carbs, proteins, fats, vitamins, minerals, and water. The food choices you make regularly have a real impact on how you feel and perform."
     },
     2: {
       title: "Proteins",
@@ -172,7 +180,7 @@ const Lesson = () => {
         <div className="bg-secondary/60 rounded-xl p-4">
           <p className="text-xs font-bold text-foreground mb-1">💡 Why should I care?</p>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            {lessonId === 1 && "Understanding macronutrients helps you make smarter food choices for energy, recovery, and long-term health — without counting every calorie."}
+            {lessonId === 1 && "Understanding nutrition gives you the foundation to make smarter food choices every day. What you eat directly impacts your energy, mood, and long-term health."}
             {lessonId === 2 && "Protein is the building block of muscle, skin, and every cell in your body. Eating enough protein supports strength and recovery."}
             {lessonId === 3 && "Choosing the right fats protects your heart, supports brain function, and helps your body absorb essential vitamins."}
           </p>

@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import { useUser } from "@/hooks/useUserContext";
 import { useCompleteLesson } from "@/hooks/useCompleteLesson";
-import { sampleQuiz } from "@/data/lessons";
+import { sampleQuiz, lesson1Quiz } from "@/data/lessons";
 import { Check, X } from "lucide-react";
 
 const Quiz = () => {
@@ -13,6 +13,11 @@ const Quiz = () => {
   const { markLessonComplete } = useCompleteLesson();
   const [searchParams] = useSearchParams();
   const lessonId = parseInt(searchParams.get("lessonId") || "1");
+
+  const quizMap: Record<number, typeof sampleQuiz> = {
+    1: lesson1Quiz,
+  };
+  const activeQuiz = quizMap[lessonId] ?? sampleQuiz;
   
   const [currentQ, setCurrentQ] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -20,7 +25,7 @@ const Quiz = () => {
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
 
-  const question = sampleQuiz[currentQ];
+  const question = activeQuiz[currentQ];
   const isCorrect = selectedAnswer === question.correctIndex;
 
   const handleSelect = (index: number) => {
@@ -33,7 +38,7 @@ const Quiz = () => {
   };
 
   const handleNext = () => {
-    if (currentQ < sampleQuiz.length - 1) {
+    if (currentQ < activeQuiz.length - 1) {
       setCurrentQ((q) => q + 1);
       setSelectedAnswer(null);
       setShowFeedback(false);
@@ -45,7 +50,7 @@ const Quiz = () => {
   const handleQuizComplete = async () => {
     if (!user) return;
 
-    const totalQuestions = sampleQuiz.length;
+    const totalQuestions = activeQuiz.length;
     const pct = Math.round((score / totalQuestions) * 100);
     const passed = pct >= 60;
 
@@ -56,7 +61,7 @@ const Quiz = () => {
   };
 
   if (finished) {
-    const pct = Math.round((score / sampleQuiz.length) * 100);
+    const pct = Math.round((score / activeQuiz.length) * 100);
     const passed = pct >= 60;
     
     return (
@@ -67,7 +72,7 @@ const Quiz = () => {
           <div className="bg-card rounded-2xl p-6 card-elevated w-full">
             <p className="text-4xl font-extrabold text-primary">{pct}%</p>
             <p className="text-sm text-muted-foreground mt-1">
-              {score} out of {sampleQuiz.length} correct
+              {score} out of {activeQuiz.length} correct
             </p>
             {passed && (
               <p className="text-xs text-success font-semibold mt-2">✓ PASSED - Lesson Completed!</p>
@@ -114,7 +119,7 @@ const Quiz = () => {
         <div>
           <p className="text-xs font-semibold text-muted-foreground mb-1.5 text-center">Quiz Progress</p>
           <div className="flex gap-1">
-            {sampleQuiz.map((_, i) => (
+            {activeQuiz.map((_, i) => (
               <div
                 key={i}
                 className={`h-2.5 flex-1 rounded-full transition-colors ${
@@ -184,7 +189,7 @@ const Quiz = () => {
             onClick={handleNext}
             className="w-full py-3.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm animate-slide-up hover:opacity-90 transition-opacity"
           >
-            {currentQ < sampleQuiz.length - 1 ? "Next Question" : "See Results"}
+            {currentQ < activeQuiz.length - 1 ? "Next Question" : "See Results"}
           </button>
         )}
       </div>
