@@ -11,7 +11,7 @@ const Index = () => {
   const { user } = useUser();
   const { lessons, refetch } = useUserLessonsWithStatus(user?.user_id || null);
   const completedCount = lessons.filter((l) => l.status === "completed").length;
-  const nextLesson = lessons.find((l) => l.status === "active" || l.status === "in progress");
+  const nextLesson = lessons.find((l) => l.status === "active");
 
   // Refetch lessons whenever page is navigated to (detects route changes)
   useEffect(() => {

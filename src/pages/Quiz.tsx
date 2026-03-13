@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import { useUser } from "@/hooks/useUserContext";
 import { useCompleteLesson } from "@/hooks/useCompleteLesson";
-import { sampleQuiz, lesson1Quiz } from "@/data/lessons";
+import { quizMap } from "@/data/lessons";
 import { Check, X } from "lucide-react";
 
 const Quiz = () => {
@@ -14,10 +14,8 @@ const Quiz = () => {
   const [searchParams] = useSearchParams();
   const lessonId = parseInt(searchParams.get("lessonId") || "1");
 
-  const quizMap: Record<number, typeof sampleQuiz> = {
-    1: lesson1Quiz,
-  };
-  const activeQuiz = quizMap[lessonId] ?? sampleQuiz;
+  // Reads from lessons.ts — no hardcoding needed!
+  const activeQuiz = quizMap[lessonId] ?? quizMap[1];
   
   const [currentQ, setCurrentQ] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -87,7 +85,6 @@ const Quiz = () => {
             <button
               onClick={async () => {
                 await handleQuizComplete();
-                // Small delay to ensure database update completes
                 setTimeout(() => navigate("/"), 500);
               }}
               className="flex-1 py-3 rounded-xl bg-card border border-border text-foreground font-semibold text-sm"
@@ -198,3 +195,4 @@ const Quiz = () => {
 };
 
 export default Quiz;
+
