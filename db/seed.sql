@@ -56,6 +56,10 @@ INSERT INTO Lessons (unit_id, theme, level) VALUES
 
 INSERT INTO Lesson_Cards (lesson_id, card_order, card_text) VALUES
 
+-- ==========================================
+-- unit 1 and 2
+-- ==========================================
+
 -- Lesson 1
 (1,1,'Welcome to NutriLearn! In this course you will learn how food fuels the body and supports long-term health.'),
 (1,2,'Nutrition is more than just calories. It includes the nutrients that allow your body to grow, repair itself, and function properly.'),
@@ -106,6 +110,10 @@ INSERT INTO Lesson_Cards (lesson_id, card_order, card_text) VALUES
 (10,2,'Meals that include carbs, proteins, and fats provide a balanced source of nutrition.'),
 (10,3,'Understanding your macros can help you build healthier meals.'),
 
+-- ==========================================
+-- unit 3
+-- ==========================================
+
 -- Lesson 11
 (11,1,'Micronutrients are nutrients required in smaller amounts but still essential.'),
 (11,2,'They include vitamins and minerals that support body functions.'),
@@ -131,6 +139,10 @@ INSERT INTO Lesson_Cards (lesson_id, card_order, card_text) VALUES
 (15,2,'Fruits, vegetables, whole grains, and lean proteins contain many essential nutrients.'),
 (15,3,'Eating a colorful plate often means you are consuming a variety of vitamins and minerals.'),
 
+-- ==========================================
+-- unit 4
+-- ==========================================
+
 -- Lesson 16
 (16,1,'The digestive system begins breaking down food in the mouth.'),
 (16,2,'Food travels through the stomach and intestines where digestion continues.'),
@@ -152,24 +164,33 @@ INSERT INTO Lesson_Cards (lesson_id, card_order, card_text) VALUES
 (19,3,'Healthy lifestyle habits support efficient digestion.'),
 
 -- Lesson 20
-(20,1,'The Nutrition Facts label provides detailed information about packaged foods.'),
-(20,2,'It includes serving size, calories, and nutrient content.'),
-(20,3,'Understanding labels helps consumers make healthier choices.'),
+(20, 1, 'Heartburn occurs when stomach acid moves back into the esophagus, often caused by eating too quickly or lying down immediately after a meal.'),
+(20, 2, 'Food intolerances, like lactose intolerance, happen when the body lacks specific enzymes to break down certain food components.'),
+(20, 3, 'To support your digestive health, focus on mindful eating: chewing thoroughly, staying hydrated, and managing stress levels.');
+
+-- ==========================================
+-- unit 5
+-- ==========================================
 
 -- Lesson 21
-(21,1,'Ingredient lists show what a product contains.'),
-(21,2,'Ingredients are listed in order of weight, from highest to lowest.'),
-(21,3,'Shorter ingredient lists often indicate less processed foods.'),
+(21,1,'The Nutrition Facts label provides detailed information about packaged foods.'),
+(21,2,'It includes serving size, calories, and nutrient content.'),
+(21,3,'Understanding labels helps consumers make healthier choices.'),
 
 -- Lesson 22
-(22,1,'Food packaging often includes marketing claims like "natural" or "low-fat".'),
-(22,2,'These claims may not always reflect the overall healthfulness of a food.'),
-(22,3,'Always check the Nutrition Facts label for accurate information.'),
+(22,1,'Ingredient lists show what a product contains.'),
+(22,2,'Ingredients are listed in order of weight, from highest to lowest.'),
+(22,3,'Shorter ingredient lists often indicate less processed foods.'),
 
 -- Lesson 23
-(23,1,'Comparing food products helps identify healthier choices.'),
-(23,2,'Look at calories, added sugars, sodium, and fiber when comparing foods.'),
-(23,3,'Small label differences can have a big impact on nutrition.' );
+(23,1,'Food packaging often includes marketing claims like "natural" or "low-fat".'),
+(23,2,'These claims may not always reflect the overall healthfulness of a food.'),
+(23,3,'Always check the Nutrition Facts label for accurate information.'),
+
+-- Lesson 24
+(24,1,'Comparing food products helps identify healthier choices.'),
+(24,2,'Look at calories, added sugars, sodium, and fiber when comparing foods.'),
+(24,3,'Small label differences can have a big impact on nutrition.' );
 
 
 -- ==========================================
@@ -212,6 +233,52 @@ SELECT question_id,'Incorrect Option A',FALSE FROM Quiz_Questions;
 
 INSERT INTO Quiz_Answers (question_id, answer_text, is_correct)
 SELECT question_id,'Incorrect Option B',FALSE FROM Quiz_Questions;
+
+-- ==========================================
+-- Unit 4 QUIZ
+-- ==========================================
+
+-- 1. Create the Quiz Entry
+INSERT INTO Quizzes (lesson_id, num_of_questions) VALUES (24, 5);
+
+-- 2. Add the 5 Questions (Assuming the quiz_id created is 24)
+INSERT INTO Quiz_Questions (quiz_id, question_order, question_text) VALUES
+(24, 1, 'What is a common cause of heartburn?'),
+(24, 2, 'What happens during a food intolerance?'),
+(24, 3, 'Why should you increase water intake when eating more fiber?'),
+(24, 4, 'Which habit best supports "mindful eating"?'),
+(24, 5, 'What is the role of digestive enzymes?');
+
+-- 3. Add the Answers
+-- Question 1
+INSERT INTO Quiz_Answers (question_id, answer_text, is_correct) VALUES 
+((SELECT question_id FROM Quiz_Questions WHERE quiz_id = 24 AND question_order = 1), 'Stomach acid moving into the esophagus', TRUE),
+((SELECT question_id FROM Quiz_Questions WHERE quiz_id = 24 AND question_order = 1), 'Eating too much fiber', FALSE),
+((SELECT question_id FROM Quiz_Questions WHERE quiz_id = 24 AND question_order = 1), 'Drinking too much water', FALSE);
+
+-- Question 2
+INSERT INTO Quiz_Answers (question_id, answer_text, is_correct) VALUES 
+((SELECT question_id FROM Quiz_Questions WHERE quiz_id = 24 AND question_order = 2), 'The body lacks specific enzymes to break down food', TRUE),
+((SELECT question_id FROM Quiz_Questions WHERE quiz_id = 24 AND question_order = 2), 'The body is allergic to all proteins', FALSE),
+((SELECT question_id FROM Quiz_Questions WHERE quiz_id = 24 AND question_order = 2), 'The stomach produces too much acid', FALSE);
+
+-- Question 3
+INSERT INTO Quiz_Answers (question_id, answer_text, is_correct) VALUES 
+((SELECT question_id FROM Quiz_Questions WHERE quiz_id = 24 AND question_order = 3), 'To prevent constipation and keep waste moving', TRUE),
+((SELECT question_id FROM Quiz_Questions WHERE quiz_id = 24 AND question_order = 3), 'To wash away the fiber', FALSE),
+((SELECT question_id FROM Quiz_Questions WHERE quiz_id = 24 AND question_order = 3), 'To stop the digestion of fiber', FALSE);
+
+-- Question 4
+INSERT INTO Quiz_Answers (question_id, answer_text, is_correct) VALUES 
+((SELECT question_id FROM Quiz_Questions WHERE quiz_id = 24 AND question_order = 4), 'Chewing food thoroughly and eating slowly', TRUE),
+((SELECT question_id FROM Quiz_Questions WHERE quiz_id = 24 AND question_order = 4), 'Watching TV while eating', FALSE),
+((SELECT question_id FROM Quiz_Questions WHERE quiz_id = 24 AND question_order = 4), 'Eating as fast as possible', FALSE);
+
+-- Question 5
+INSERT INTO Quiz_Answers (question_id, answer_text, is_correct) VALUES 
+((SELECT question_id FROM Quiz_Questions WHERE quiz_id = 24 AND question_order = 5), 'They help break down food components into absorbable nutrients', TRUE),
+((SELECT question_id FROM Quiz_Questions WHERE quiz_id = 24 AND question_order = 5), 'They produce stomach acid', FALSE),
+((SELECT question_id FROM Quiz_Questions WHERE quiz_id = 24 AND question_order = 5), 'They store fat in the body', FALSE);
 
 
 -- ==========================================
