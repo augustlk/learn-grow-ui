@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "sync-db": "node generate-lessons.mjs"
+    "sync-db": "node generate-lessons.mjs",
+    "start": "node server.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

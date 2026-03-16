@@ -1,3 +1,4 @@
+import path from 'path';
 import express from 'express';
 import cors from 'cors';
 import pg from 'pg';
@@ -207,9 +208,20 @@ app.post('/api/users/:userId/quiz/:quizId/result', async (req, res) => {
   }
 });
 
-// ─── Start server ─────────────────────────────────────────────────────────────
+// Serve built frontend (dist/) as static assets
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const distPath = path.join(__dirname, 'dist');
 
-const PORT = process.env.API_PORT || 3000;
+app.use(express.static(distPath));
+// SPA fallback for client-side routing:
+app.get('*', (req, res) => {
+  // If the request starts with /api, pass through to API handlers (already matched above).
+  if (req.path.startsWith('/api')) return res.status(404).send({error: 'Not found'});
+  res.sendFile(path.join(distPath, 'index.html'));
+});
+
+// Listen on EB-provided PORT, fallback to API_PORT, fallback to 3000
+const PORT = parseInt(process.env.PORT || process.env.API_PORT || '3000', 10);
 app.listen(PORT, () => {
-  console.log(`API server running on port ${PORT}`);
+  console.log(`API server + frontend running on port ${PORT}`);
 });
