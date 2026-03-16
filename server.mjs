@@ -19,59 +19,66 @@ const pool = new Pool({
 app.use(cors());
 app.use(express.json());
 
-// ─────────────────────────────────────────────
-// HEALTH CHECK
-// ─────────────────────────────────────────────
+// ─── Health check ────────────────────────────────────────────────────────────
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// ─────────────────────────────────────────────
-// UNITS & LESSONS
-// ─────────────────────────────────────────────
+// ─── Units (with lessons) ─────────────────────────────────────────────────────
+// Used by the home page to render the unit-grouped lesson list.
+// Returns all units, each with their lessons in order.
 
-// Get all units with their lessons
 app.get('/api/units', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT 
+      SELECT
         u.unit_id,
         u.unit_title,
         u.unit_order,
         l.lesson_id,
-        l.theme,
+        l.theme        AS lesson_title,
         l.level,
-        l.total_cards,
-        l.extra_links,
         l.prereq_lesson_id
       FROM Units u
-      JOIN Lessons l ON u.unit_id = l.unit_id
+      JOIN Lessons l ON l.unit_id = u.unit_id
       ORDER BY u.unit_order ASC, l.lesson_id ASC;
     `);
-    res.json({ success: true, data: result.rows });
+
+    // Group lessons under their unit
+    const unitsMap = new Map();
+    for (const row of result.rows) {
+      if (!unitsMap.has(row.unit_id)) {
+        unitsMap.set(row.unit_id, {
+          unit_id: row.unit_id,
+          unit_title: row.unit_title,
+          unit_order: row.unit_order,
+          lessons: [],
+        });
+      }
+      unitsMap.get(row.unit_id).lessons.push({
+        lesson_id: row.lesson_id,
+        lesson_title: row.lesson_title,
+        level: row.level,
+        prereq_lesson_id: row.prereq_lesson_id,
+      });
+    }
+
+    res.json({ success: true, data: Array.from(unitsMap.values()) });
   } catch (error) {
     console.error('Error fetching units:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Get all lessons (flat list for home screen)
+// ─── All lessons (flat list) ──────────────────────────────────────────────────
+
 app.get('/api/lessons', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT 
-        l.lesson_id,
-        l.unit_id,
-        l.theme AS title,
-        l.level,
-        l.total_cards,
-        l.extra_links,
-        u.unit_title,
-        u.unit_order
-      FROM Lessons l
-      JOIN Units u ON l.unit_id = u.unit_id
-      ORDER BY u.unit_order ASC, l.lesson_id ASC;
+      SELECT lesson_id, unit_id, theme AS lesson_title, level, prereq_lesson_id
+      FROM Lessons
+      ORDER BY lesson_id ASC;
     `);
     res.json({ success: true, data: result.rows });
   } catch (error) {
@@ -80,26 +87,26 @@ app.get('/api/lessons', async (req, res) => {
   }
 });
 
-// Get lesson cards for a specific lesson
+// ─── Lesson cards ─────────────────────────────────────────────────────────────
+// Returns the 3 content cards for a given lesson.
+
 app.get('/api/lessons/:lessonId/cards', async (req, res) => {
   try {
     const { lessonId } = req.params;
     const result = await pool.query(`
-      SELECT 
+      SELECT
         lc.card_id,
-        lc.lesson_id,
         lc.card_order,
         lc.card_text,
-        l.theme AS lesson_title,
-        l.level,
-        l.extra_links,
+        l.theme  AS lesson_title,
         u.unit_title
       FROM Lesson_Cards lc
-      JOIN Lessons l ON lc.lesson_id = l.lesson_id
-      JOIN Units u ON l.unit_id = u.unit_id
+      JOIN Lessons l ON l.lesson_id = lc.lesson_id
+      JOIN Units   u ON u.unit_id   = l.unit_id
       WHERE lc.lesson_id = $1
       ORDER BY lc.card_order ASC;
     `, [parseInt(lessonId)]);
+
     res.json({ success: true, data: result.rows });
   } catch (error) {
     console.error('Error fetching lesson cards:', error);
@@ -107,74 +114,51 @@ app.get('/api/lessons/:lessonId/cards', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────
-// QUIZZES
-// ─────────────────────────────────────────────
+// ─── Quiz questions for a lesson ──────────────────────────────────────────────
+// Returns all questions with their answer options for a lesson's quiz.
 
-// Get quiz questions and answers for a specific lesson
 app.get('/api/lessons/:lessonId/quiz', async (req, res) => {
   try {
     const { lessonId } = req.params;
     const result = await pool.query(`
-      SELECT 
+      SELECT
         qq.question_id,
+        qq.quiz_id,
         qq.question_order,
         qq.question_text,
-        qa.answer_id,
-        qa.answer_text,
-        qa.is_correct,
-        q.quiz_id,
-        q.passing_score
+        json_agg(
+          json_build_object(
+            'answer_id',   qa.answer_id,
+            'answer_text', qa.answer_text,
+            'is_correct',  qa.is_correct
+          ) ORDER BY qa.answer_id ASC
+        ) AS answers
       FROM Quizzes q
-      JOIN Quiz_Questions qq ON q.quiz_id = qq.quiz_id
-      JOIN Quiz_Answers qa ON qq.question_id = qa.question_id
+      JOIN Quiz_Questions qq ON qq.quiz_id   = q.quiz_id
+      JOIN Quiz_Answers   qa ON qa.question_id = qq.question_id
       WHERE q.lesson_id = $1
-      ORDER BY qq.question_order ASC, qa.answer_id ASC;
+      GROUP BY qq.question_id, qq.quiz_id, qq.question_order, qq.question_text
+      ORDER BY qq.question_order ASC;
     `, [parseInt(lessonId)]);
 
-    // Group answers under each question
-    const questionsMap = {};
-    result.rows.forEach((row) => {
-      if (!questionsMap[row.question_id]) {
-        questionsMap[row.question_id] = {
-          id: row.question_id,
-          question: row.question_text,
-          options: [],
-          correctIndex: -1,
-          quiz_id: row.quiz_id,
-          passing_score: row.passing_score,
-        };
-      }
-      const optionIndex = questionsMap[row.question_id].options.length;
-      questionsMap[row.question_id].options.push(row.answer_text);
-      if (row.is_correct) {
-        questionsMap[row.question_id].correctIndex = optionIndex;
-      }
-    });
-
-    const questions = Object.values(questionsMap);
-    res.json({ success: true, data: questions });
+    res.json({ success: true, data: result.rows });
   } catch (error) {
     console.error('Error fetching quiz:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// ─────────────────────────────────────────────
-// USER PROGRESS
-// ─────────────────────────────────────────────
+// ─── User lesson progress ─────────────────────────────────────────────────────
 
-// Get user's lesson progress
 app.get('/api/users/:userId/lessons', async (req, res) => {
   try {
     const { userId } = req.params;
-    const result = await pool.query(
-      `SELECT user_id, lesson_id, status, completed_at
-       FROM User_Lessons
-       WHERE user_id = $1
-       ORDER BY lesson_id ASC;`,
-      [parseInt(userId)]
-    );
+    const result = await pool.query(`
+      SELECT user_id, lesson_id, status, completed_at
+      FROM User_Lessons
+      WHERE user_id = $1
+      ORDER BY lesson_id ASC;
+    `, [parseInt(userId)]);
     res.json({ success: true, data: result.rows });
   } catch (error) {
     console.error('Error fetching user lessons:', error);
@@ -182,50 +166,55 @@ app.get('/api/users/:userId/lessons', async (req, res) => {
   }
 });
 
-// Update lesson status to complete
+// ─── Mark lesson complete ─────────────────────────────────────────────────────
+
 app.post('/api/users/:userId/lessons/:lessonId/complete', async (req, res) => {
   try {
     const { userId, lessonId } = req.params;
-    const result = await pool.query(
-      `INSERT INTO User_Lessons (user_id, lesson_id, status, completed_at)
-       VALUES ($1, $2, 'Completed', CURRENT_TIMESTAMP)
-       ON CONFLICT (user_id, lesson_id) 
-       DO UPDATE SET status = 'Completed', completed_at = CURRENT_TIMESTAMP
-       RETURNING *;`,
-      [parseInt(userId), parseInt(lessonId)]
-    );
+    const result = await pool.query(`
+      INSERT INTO User_Lessons (user_id, lesson_id, status, completed_at)
+      VALUES ($1, $2, 'Completed', CURRENT_TIMESTAMP)
+      ON CONFLICT (user_id, lesson_id)
+      DO UPDATE SET status = 'Completed', completed_at = CURRENT_TIMESTAMP
+      RETURNING *;
+    `, [parseInt(userId), parseInt(lessonId)]);
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
-    console.error('Error updating lesson status:', error);
+    console.error('Error completing lesson:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Save user quiz result
+// ─── Save quiz result ─────────────────────────────────────────────────────────
+
 app.post('/api/users/:userId/quiz/:quizId/result', async (req, res) => {
   try {
     const { userId, quizId } = req.params;
     const { score, passed } = req.body;
-
-    // Get attempt number
-    const attemptResult = await pool.query(
-      `SELECT COUNT(*) FROM User_Quizzes WHERE user_id = $1 AND quiz_id = $2;`,
-      [parseInt(userId), parseInt(quizId)]
-    );
-    const attemptNumber = parseInt(attemptResult.rows[0].count) + 1;
-
-    const result = await pool.query(
-      `INSERT INTO User_Quizzes (user_id, quiz_id, score, attempt_number, passed)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING *;`,
-      [parseInt(userId), parseInt(quizId), score, attemptNumber, passed]
-    );
+    const result = await pool.query(`
+      INSERT INTO User_Quizzes (user_id, quiz_id, score, attempt_number, passed, best_score)
+      VALUES (
+        $1, $2, $3, 
+        COALESCE((SELECT MAX(attempt_number) FROM User_Quizzes WHERE user_id = $1 AND quiz_id = $2), 0) + 1,
+        $4,
+        $4
+      )
+      ON CONFLICT (user_id, quiz_id)
+      DO UPDATE SET
+        score          = EXCLUDED.score,
+        attempt_number = User_Quizzes.attempt_number + 1,
+        passed         = EXCLUDED.passed,
+        best_score     = CASE WHEN EXCLUDED.passed THEN TRUE ELSE User_Quizzes.best_score END
+      RETURNING *;
+    `, [parseInt(userId), parseInt(quizId), score, passed]);
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
     console.error('Error saving quiz result:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// ─── Start server ─────────────────────────────────────────────────────────────
 
 const PORT = process.env.API_PORT || 3000;
 app.listen(PORT, () => {

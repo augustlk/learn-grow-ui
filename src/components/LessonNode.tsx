@@ -1,9 +1,9 @@
 import { Check, Lock, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import type { Lesson } from "@/data/lessons";
+import type { LessonWithStatus } from "@/hooks/useUserLessonsWithStatus";
 
 interface LessonNodeProps {
-  lesson: Lesson;
+  lesson: LessonWithStatus;
   index: number;
 }
 
@@ -14,9 +14,7 @@ const LessonNode = ({ lesson, index }: LessonNodeProps) => {
   const offset = positions[index % positions.length];
 
   const handleClick = () => {
-    if (lesson.status === "completed") {
-      navigate(`/lesson?lessonId=${lesson.id}`);
-    } else if (lesson.status === "active") {
+    if (lesson.status !== "locked") {
       navigate(`/lesson?lessonId=${lesson.id}`);
     }
   };
@@ -61,12 +59,15 @@ const LessonNode = ({ lesson, index }: LessonNodeProps) => {
           {lesson.title}
         </p>
         <p className="text-[10px] text-muted-foreground">{lesson.duration}</p>
+
         {lesson.status === "active" && lesson.modulesTotal && (
           <div className="mt-1 flex items-center gap-1 justify-center">
             <div className="h-1.5 w-16 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary rounded-full transition-all"
-                style={{ width: `${(lesson.modulesCompleted! / lesson.modulesTotal) * 100}%` }}
+                style={{
+                  width: `${(lesson.modulesCompleted! / lesson.modulesTotal) * 100}%`,
+                }}
               />
             </div>
             <span className="text-[9px] text-muted-foreground">

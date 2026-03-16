@@ -1,119 +1,217 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import eagleMascot from "@/assets/eagle-mascot.png";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { lessonContentMap } from "@/data/lessons";
 
+interface ApiCard {
+  card_id: number;
+  card_order: number;
+  card_text: string;
+  lesson_title: string;
+  unit_title: string;
+}
+
+const ProgressBar = ({
+  current,
+  total,
+}: {
+  current: number;
+  total: number;
+}) => (
+  <div>
+    <div className="flex items-center justify-between mb-1.5">
+      <span className="text-xs font-semibold text-muted-foreground">
+        {current} / {total}
+      </span>
+      <span className="text-xs font-semibold text-primary">5 min lesson</span>
+    </div>
+    <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
+      <div
+        className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
+        style={{ width: `${(current / total) * 100}%` }}
+      />
+    </div>
+  </div>
+);
+
+const NavButtons = ({
+  onBack,
+  onNext,
+  onQuiz,
+  backLabel,
+  isLast,
+}: {
+  onBack: () => void;
+  onNext?: () => void;
+  onQuiz: () => void;
+  backLabel: string;
+  isLast: boolean;
+}) => (
+  <div className="flex gap-3">
+    <button
+      onClick={onBack}
+      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-card border border-border text-foreground font-semibold text-sm hover:bg-secondary transition-colors"
+    >
+      <ChevronLeft className="w-4 h-4" />
+      {backLabel}
+    </button>
+
+    {!isLast ? (
+      <button
+        onClick={onNext}
+        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity"
+      >
+        Continue
+        <ChevronRight className="w-4 h-4" />
+      </button>
+    ) : (
+      <button
+        onClick={onQuiz}
+        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-accent text-accent-foreground font-bold text-sm hover:opacity-90 transition-opacity"
+      >
+        Quiz Me 🎯
+      </button>
+    )}
+  </div>
+);
+
 const Lesson = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const lessonId = parseInt(searchParams.get("lessonId") || "1");
-  const [currentSection, setCurrentSection] = useState(0);
 
-  // Reads directly from lessons.ts — no database needed!
-  const lessonContent = lessonContentMap[lessonId] || lessonContentMap[1];
-  const totalSections = lessonContent.sections.length + 1; // +1 for key takeaway
-  const isOnTakeaway = currentSection === lessonContent.sections.length;
-  const progress = ((currentSection + 1) / totalSections) * 100;
+  const lessonIdParam = searchParams.get("lessonId");
+  const lessonId = Number(lessonIdParam);
+
+  const [currentSection, setCurrentSection] = useState(0);
+  const [cards, setCards] = useState<ApiCard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    setCurrentSection(0);
+    setCards([]);
+    setError(false);
+    setLoading(true);
+
+    if (!Number.isInteger(lessonId) || lessonId <= 0) {
+      setError(true);
+      setLoading(false);
+      return;
+    }
+
+    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+    fetch(`${apiUrl}/api/lessons/${lessonId}/cards`)
+      .then((r) => {
+        if (!r.ok) {
+          throw new Error(`HTTP ${r.status}`);
+        }
+        return r.json();
+      })
+      .then((data) => {
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+          setCards(data.data);
+        } else {
+          setError(true);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load lesson cards:", err);
+        setError(true);
+      })
+      .finally(() => setLoading(false));
+  }, [lessonId]);
+
+  const goToQuiz = () => {
+    if (!Number.isInteger(lessonId) || lessonId <= 0) return;
+    navigate(`/quiz?lessonId=${lessonId}`);
+  };
+
+  const goHome = () => navigate("/");
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-sm text-muted-foreground">Loading lesson…</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (error || cards.length === 0) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center h-64 gap-4 px-5">
+          <p className="text-sm text-muted-foreground text-center">
+            Could not load this lesson. Please try again.
+          </p>
+          <button
+            onClick={goHome}
+            className="py-3 px-6 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
+          >
+            Back to Home
+          </button>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const totalCards = cards.length;
+  const currentCard = cards[currentSection];
+  const lessonTitle = cards[0]?.lesson_title ?? `Lesson ${lessonId}`;
+  const isLastCard = currentSection === totalCards - 1;
 
   return (
     <AppLayout>
       <div className="px-5 py-4 space-y-4">
-        {/* Progress bar */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-semibold text-muted-foreground">
-              {currentSection + 1} / {totalSections}
-            </span>
-            <span className="text-xs font-semibold text-primary">
-              {lessonContent.duration} lesson
-            </span>
-          </div>
-          <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
+        <ProgressBar current={currentSection + 1} total={totalCards} />
 
-        {/* Lesson title */}
         <div className="text-center">
-          <p className="text-xs text-muted-foreground font-medium">Lesson {lessonId}</p>
-          <h2 className="text-xl font-extrabold text-foreground">{lessonContent.title}</h2>
-        </div>
-
-        {/* Content card */}
-        <div className="bg-card rounded-2xl p-5 card-elevated min-h-[300px] flex flex-col">
-          {!isOnTakeaway ? (
-            <div className="animate-slide-up flex-1" key={currentSection}>
-              <div className="flex items-center gap-3 mb-4">
-                <img src={eagleMascot} alt="Eagle mascot" className="w-12 h-12 rounded-full bg-secondary" />
-                <h3 className="text-base font-bold text-foreground">
-                  {lessonContent.sections[currentSection].heading}
-                </h3>
-              </div>
-              <p className="text-sm text-card-foreground leading-relaxed">
-                {lessonContent.sections[currentSection].content}
-              </p>
-            </div>
-          ) : (
-            <div className="animate-slide-up flex-1" key="takeaway">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-2xl">⭐</span>
-                <h3 className="text-base font-bold text-foreground">Key Takeaway</h3>
-              </div>
-              <div className="bg-primary/10 rounded-xl p-4 border border-primary/20">
-                <p className="text-sm text-foreground font-medium leading-relaxed">
-                  {lessonContent.keyTakeaway}
-                </p>
-              </div>
-              <div className="flex items-center gap-3 mt-6">
-                <img src={eagleMascot} alt="Eagle mascot" className="w-10 h-10 rounded-full bg-secondary" />
-                <p className="text-xs text-muted-foreground italic">
-                  "Great job! You're building real knowledge here." 🦅
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Navigation */}
-        <div className="flex gap-3">
-          <button
-            onClick={() => currentSection > 0 ? setCurrentSection(currentSection - 1) : navigate("/")}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-card border border-border text-foreground font-semibold text-sm hover:bg-secondary transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            {currentSection > 0 ? "Back" : "Exit"}
-          </button>
-
-          {!isOnTakeaway ? (
-            <button
-              onClick={() => setCurrentSection(currentSection + 1)}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity"
-            >
-              Continue
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          ) : (
-            <button
-              onClick={() => navigate(`/quiz?lessonId=${lessonId}`)}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-accent text-accent-foreground font-bold text-sm hover:opacity-90 transition-opacity"
-            >
-              Quiz Me 🎯
-            </button>
-          )}
-        </div>
-
-        {/* Why should I care? */}
-        <div className="bg-secondary/60 rounded-xl p-4">
-          <p className="text-xs font-bold text-foreground mb-1">💡 Why should I care?</p>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            {lessonContent.whyShouldICare}
+          <p className="text-xs text-muted-foreground font-medium">
+            Lesson {lessonId}
           </p>
+          <h2 className="text-xl font-extrabold text-foreground">
+            {lessonTitle}
+          </h2>
         </div>
+
+        <div
+          className="bg-card rounded-2xl p-5 card-elevated min-h-[300px] flex flex-col"
+          key={currentSection}
+        >
+          <div className="animate-slide-up flex-1">
+            <div className="flex items-center gap-3 mb-4">
+              <img
+                src={eagleMascot}
+                alt="Eagle mascot"
+                className="w-12 h-12 rounded-full bg-secondary"
+              />
+              <h3 className="text-base font-bold text-foreground">
+                {isLastCard
+                  ? "Key Point"
+                  : `Card ${currentSection + 1} of ${totalCards}`}
+              </h3>
+            </div>
+            <p className="text-sm text-card-foreground leading-relaxed">
+              {currentCard.card_text}
+            </p>
+          </div>
+        </div>
+
+        <NavButtons
+          onBack={() =>
+            currentSection > 0
+              ? setCurrentSection(currentSection - 1)
+              : goHome()
+          }
+          onNext={() => setCurrentSection(currentSection + 1)}
+          onQuiz={goToQuiz}
+          backLabel={currentSection > 0 ? "Back" : "Exit"}
+          isLast={isLastCard}
+        />
       </div>
     </AppLayout>
   );

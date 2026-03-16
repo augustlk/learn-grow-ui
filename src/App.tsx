@@ -14,6 +14,7 @@ import Settings from "./pages/Settings";
 import About from "./pages/About";
 import HelperBot from "./pages/HelperBot";
 import NotFound from "./pages/NotFound";
+import Unit from "./pages/Unit";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/unit/:unitId" element={<Unit />} />
             <Route path="/lesson" element={<Lesson />} />
             <Route path="/quiz" element={<Quiz />} />
             <Route path="/auth" element={<Auth />} />
