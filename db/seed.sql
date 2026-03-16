@@ -72,10 +72,12 @@ INSERT INTO Lessons (unit_id, theme, level, prereq_lesson_id) VALUES
 
 INSERT INTO Lesson_Cards (lesson_id, card_order, card_text) VALUES
 
--- Lesson 1: What is Nutrition?
-(1, 1, 'Nutrition is the science of how food and drink affect your body. Every time you eat, you give your body raw materials — for energy, for building and repairing cells, and for regulating biological processes. Without adequate nutrition, none of these systems function properly, no matter how much you exercise or sleep.'),
-(1, 2, 'Nutrients are the specific substances in food that your body uses. They fall into two broad categories: macronutrients (carbohydrates, proteins, and fats), which you need in large amounts and which provide energy, and micronutrients (vitamins and minerals), which you need in smaller amounts but are equally essential for health and function.'),
-(1, 3, 'Good nutrition is strongly linked to disease prevention. Poor diet is a leading risk factor for heart disease, type 2 diabetes, obesity, and certain cancers. A well-nourished body supports immune function, mental health, energy levels, and longevity. Nutrition is not about eating perfectly — it is about making consistently informed choices that support how you want to feel and function.'),
+-- Lesson 1: Introduction to Nutrition
+(1, 1, 'Nutrition is the science of how your body uses the food and drinks you consume. Every bite you take gives your body something to work with, whether that is energy to move, materials to build cells, or tools to fight off illness. Good nutrition means giving your body the right things in the right amounts.'),
+(1, 2, 'Your body relies on six types of essential nutrients: carbohydrates, proteins, fats, vitamins, minerals, and water. Essential means your body cannot make enough of them on its own, so you have to get them from food. Each one plays a unique role in keeping you healthy and functioning.'),
+(1, 3, 'Carbohydrates, proteins, and fats are called macronutrients because your body needs them in large amounts. Carbs are your primary energy source; proteins build and repair tissues; fats support brain function and hormone production. A balanced meal includes all three.'),
+(1, 4, 'Vitamins and minerals are called micronutrients. You only need them in small amounts, but they are critical for your health. For example, Vitamin C helps your immune system, calcium keeps bones strong, and iron carries oxygen in your blood. A varied diet is the best way to cover your micronutrient needs.'),
+(1, 5, 'Water makes up about 60% of your body and is involved in nearly every process, from digesting food to regulating your temperature. Most people need 6 to 8 cups per day. Even mild dehydration can cause fatigue, poor concentration, and headaches.'),
 
 -- Lesson 2: The Six Essential Nutrients
 (2, 1, 'Your body relies on six categories of essential nutrients: carbohydrates, proteins, fats, vitamins, minerals, and water. "Essential" means your body cannot make enough of them on its own — you must get them from food. Each one plays a unique role, and most whole foods provide a mix of several nutrients at once, which is why eating a variety of foods is more effective than focusing on any single superfood.'),
@@ -161,12 +163,12 @@ SELECT lesson_id, 5, 4 FROM Lessons ORDER BY lesson_id;
 -- ==========================================
 
 INSERT INTO Quiz_Questions (quiz_id, question_order, question_text) VALUES
--- Lesson 1: What is Nutrition?
+-- Lesson 1: Introduction to Nutrition
 (1, 1, 'What is nutrition?'),
-(1, 2, 'Which of the following is a macronutrient?'),
-(1, 3, 'Which condition is strongly linked to poor nutrition?'),
-(1, 4, 'What are the two main categories of nutrients?'),
-(1, 5, 'What is the best way to think about good nutrition?'),
+(1, 2, 'How many essential nutrients does the human body rely on?'),
+(1, 3, 'Which group of nutrients does your body need in the LARGEST amounts?'),
+(1, 4, 'Which of these is an example of a micronutrient?'),
+(1, 5, 'About how much of your body weight is water?'),
 -- Lesson 2: The Six Essential Nutrients
 (2, 1, 'How many categories of essential nutrients does your body rely on?'),
 (2, 2, 'Why are nutrients called "essential"?'),
@@ -258,16 +260,16 @@ INSERT INTO Quiz_Questions (quiz_id, question_order, question_text) VALUES
 -- ==========================================
 
 INSERT INTO Quiz_Answers (question_id, answer_text, is_correct) VALUES
--- L1Q1
-(1, 'The science of how food and drink affect the body', TRUE), (1, 'A system of rules about which foods to eat', FALSE), (1, 'The study of physical exercise and movement', FALSE),
--- L1Q2
-(2, 'Fat', TRUE), (2, 'Iron', FALSE), (2, 'Vitamin C', FALSE),
--- L1Q3
-(3, 'Type 2 diabetes', TRUE), (3, 'Sunburn', FALSE), (3, 'Broken bones from falls', FALSE),
--- L1Q4
-(4, 'Macronutrients and micronutrients', TRUE), (4, 'Vitamins and calories', FALSE), (4, 'Proteins and carbohydrates only', FALSE),
--- L1Q5
-(5, 'Making consistently informed choices that support how you want to feel', TRUE), (5, 'Eating perfectly at every single meal', FALSE), (5, 'Counting every calorie and gram of macronutrient', FALSE),
+-- L1Q1: What is nutrition?
+(1, 'How your body uses food and drinks', TRUE), (1, 'The study of exercise', FALSE), (1, 'A type of diet plan', FALSE), (1, 'The number of calories in food', FALSE),
+-- L1Q2: How many essential nutrients does the human body rely on?
+(2, '6', TRUE), (2, '3', FALSE), (2, '4', FALSE), (2, '5', FALSE),
+-- L1Q3: Which group of nutrients does your body need in the LARGEST amounts?
+(3, 'Macronutrients', TRUE), (3, 'Vitamins', FALSE), (3, 'Minerals', FALSE), (3, 'Antioxidants', FALSE),
+-- L1Q4: Which of these is an example of a micronutrient?
+(4, 'Vitamin C', TRUE), (4, 'Carbohydrate', FALSE), (4, 'Fat', FALSE), (4, 'Protein', FALSE),
+-- L1Q5: About how much of your body weight is water?
+(5, '60%', TRUE), (5, '20%', FALSE), (5, '40%', FALSE), (5, '80%', FALSE),
 
 -- L2Q1
 (6, 'Six', TRUE), (6, 'Three', FALSE), (6, 'Ten', FALSE),
