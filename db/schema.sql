@@ -6,11 +6,9 @@ DROP TABLE IF EXISTS User_Badges;
 DROP TABLE IF EXISTS User_Quizzes;
 DROP TABLE IF EXISTS User_Card_Progress;
 DROP TABLE IF EXISTS User_Lessons;
-
 DROP TABLE IF EXISTS Quiz_Answers;
 DROP TABLE IF EXISTS Quiz_Questions;
 DROP TABLE IF EXISTS Lesson_Cards;
-
 DROP TABLE IF EXISTS Badges;
 DROP TABLE IF EXISTS Quizzes;
 DROP TABLE IF EXISTS Lessons;
@@ -171,7 +169,6 @@ CREATE TABLE User_Quizzes (
     user_id INT NOT NULL,
     quiz_id INT NOT NULL,
     score INT NOT NULL,
-    best_score BOOLEAN DEFAULT FALSE,
     attempt_number INT NOT NULL,
     date_taken_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     passed BOOLEAN NOT NULL,
