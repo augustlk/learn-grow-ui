@@ -223,14 +223,14 @@ You should see a row for `lesson_id = 2` (Proteins) with `status = 'Completed'` 
 Press `Ctrl+C` in both terminal windows to stop the servers.
 
 ## 8. EARS Requirements
-**Complete
+**Complete**
 
 - The system shall accept inputs in English.
 - The system shall produce outputs in American Sign Language.
 - When a user updates the English text, the system shall update the ASL syntax translation to reflect the changes.
 - While the system is generating a translation, the system shall display a progress indicator.
 
-**Not Complete
+**Not Complete**
 
 - When a user enters English text, the system shall generate and display the corresponding ASL syntax translation.
 - When a user requests sentence playback, the system shall play the full ASL translation video for the sentence.
