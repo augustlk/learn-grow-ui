@@ -203,7 +203,7 @@ You should see a row for `lesson_id = 2` (Proteins) with `status = 'Completed'` 
 **Issue: "Page showing 'Connecting to API...'" for a long time**
 - Check that both servers are running (Terminal 1 and Terminal 2)
 - Open browser Developer Tools (F12) → Console tab to see any error messages
-- Verify `VITE_API_URL=http://localhost:3000` in `.env`
+- Verify `VITE_API_URL=http://localhost:3001` in `.env`
 
 **Issue: "Cannot find module" after fresh install**
 - Try deleting `node_modules` folder and `.env` cache:

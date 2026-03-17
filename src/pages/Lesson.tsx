@@ -101,7 +101,7 @@ const Lesson = () => {
       return;
     }
 
-    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+    const apiUrl = import.meta.env.VITE_API_URL || "";
 
     fetch(`${apiUrl}/api/lessons/${lessonId}/cards`)
       .then((r) => {

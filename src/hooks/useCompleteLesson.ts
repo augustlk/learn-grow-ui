@@ -16,7 +16,7 @@ export const useCompleteLesson = () => {
 
     try {
       // Update in database via API
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const apiUrl = import.meta.env.VITE_API_URL || '';
       console.log(`Calling API to complete lesson ${lessonId} for user ${userId}`);
       const response = await fetch(`${apiUrl}/api/users/${userId}/lessons/${lessonId}/complete`, {
         method: 'POST',
