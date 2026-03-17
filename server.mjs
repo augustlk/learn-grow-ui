@@ -3,6 +3,18 @@ import express from 'express';
 import cors from 'cors';
 import pg from 'pg';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Serve the static files from the Vite build folder
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Route all other requests to your index.html (for React Router)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
 
 dotenv.config();
 

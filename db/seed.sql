@@ -2,19 +2,19 @@
 -- SAFE RESET (clears all data before reseeding)
 -- ==========================================
 
-TRUNCATE TABLE
-  User_Badges,
-  User_Quizzes,
-  User_Lessons,
-  Quiz_Answers,
-  Quiz_Questions,
-  Quizzes,
-  Lesson_Cards,
-  Lessons,
-  Units,
-  Badges,
-  Users
-RESTART IDENTITY CASCADE;
+--TRUNCATE TABLE
+ -- User_Badges,
+ -- User_Quizzes,
+ -- User_Lessons,
+ -- Quiz_Answers,
+ -- Quiz_Questions,
+ -- Quizzes,
+ -- Lesson_Cards,
+ -- Lessons,
+ -- Units,
+ -- Badges,
+ -- Users
+--RESTART IDENTITY CASCADE;
 
 
 -- ==========================================
