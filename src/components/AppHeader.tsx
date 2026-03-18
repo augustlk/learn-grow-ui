@@ -1,5 +1,7 @@
-import { Menu, User } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useUser } from "@/hooks/useUserContext";
+import UserAvatar from "@/components/UserAvatar";
 
 interface AppHeaderProps {
   onMenuToggle: () => void;
@@ -7,6 +9,7 @@ interface AppHeaderProps {
 
 const AppHeader = ({ onMenuToggle }: AppHeaderProps) => {
   const navigate = useNavigate();
+  const { user } = useUser();
 
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-3 bg-card/80 backdrop-blur-md border-b border-border">
@@ -24,10 +27,15 @@ const AppHeader = ({ onMenuToggle }: AppHeaderProps) => {
 
       <button
         onClick={() => navigate("/profile")}
-        className="p-2 rounded-lg hover:bg-secondary transition-colors"
+        className="p-1 rounded-full hover:opacity-80 transition-opacity"
         aria-label="Profile"
       >
-        <User className="w-5 h-5 text-foreground" />
+        <UserAvatar
+          firstName={user?.first_name}
+          lastName={user?.last_name}
+          profilePicture={user?.profile_picture}
+          size="sm"
+        />
       </button>
     </header>
   );

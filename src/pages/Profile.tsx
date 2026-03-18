@@ -1,22 +1,86 @@
+import { useRef, useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import { lessons, badges } from "@/data/lessons";
+import { badges } from "@/data/lessons";
 import { useUser } from "@/hooks/useUserContext";
 import { useUserLessons } from "@/hooks/useUserLessons";
-import { User, ChevronRight } from "lucide-react";
+import { lessons } from "@/data/lessons";
+import { ChevronRight, Camera, Trash2 } from "lucide-react";
+import UserAvatar from "@/components/UserAvatar";
 
 const Profile = () => {
-  const { user, loading } = useUser();
+  const { user, loading, updateProfilePicture } = useUser();
   const { userLessons } = useUserLessons(user?.user_id || null);
-  
-  // Get Alice's lesson progress
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
   const completedLessons = userLessons.filter((ul) => ul.status === 'Completed');
   const inProgressLessons = userLessons.filter((ul) => ul.status === 'In Progress');
-  const completed = completedLessons.length;
-  const inProgress = inProgressLessons.length;
   const earnedBadges = badges.filter((b) => b.earned);
   const streak = user?.current_streak || 12;
   const daysOfWeek = ["S", "M", "T", "W", "Th", "F", "S"];
   const activeToday = [true, true, true, true, true, false, false];
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Image must be smaller than 2MB.');
+      return;
+    }
+
+    setUploading(true);
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = reader.result as string;
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        const response = await fetch(`${apiUrl}/api/users/${user.user_id}/profile-picture`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profile_picture: base64 }),
+        });
+        const data = await response.json();
+        if (data.success) {
+          updateProfilePicture(base64);
+        } else {
+          alert('Failed to save profile picture.');
+        }
+      } catch {
+        alert('Failed to upload profile picture.');
+      } finally {
+        setUploading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePicture = async () => {
+    if (!user) return;
+    setUploading(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const response = await fetch(`${apiUrl}/api/users/${user.user_id}/profile-picture`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      if (data.success) {
+        updateProfilePicture(null);
+      }
+    } catch {
+      alert('Failed to remove profile picture.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -31,23 +95,68 @@ const Profile = () => {
   return (
     <AppLayout>
       <div className="px-5 py-6 space-y-6">
-        {/* Avatar */}
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-20 h-20 rounded-full bg-card border-4 border-border flex items-center justify-center card-elevated">
-            <User className="w-10 h-10 text-muted-foreground" />
+        {/* Avatar with upload */}
+        <div className="flex flex-col items-center gap-3">
+          <div className="relative">
+            <UserAvatar
+              firstName={user?.first_name}
+              lastName={user?.last_name}
+              profilePicture={user?.profile_picture}
+              size="lg"
+            />
+            {/* Camera button */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:opacity-90 transition-opacity disabled:opacity-50"
+              aria-label="Upload profile picture"
+            >
+              <Camera className="w-3.5 h-3.5" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
           </div>
-          <h2 className="text-lg font-bold text-foreground">
-            {user ? `${user.first_name} ${user.last_name}` : "My Profile"}
-          </h2>
-          {user && (
-            <p className="text-xs text-muted-foreground">{user.email}</p>
-          )}
+
+          <div className="text-center">
+            <h2 className="text-lg font-bold text-foreground">
+              {user ? `${user.first_name} ${user.last_name}` : "My Profile"}
+            </h2>
+            {user && (
+              <p className="text-xs text-muted-foreground">{user.email}</p>
+            )}
+          </div>
+
+          {/* Upload / Remove buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="text-xs bg-primary/10 text-primary font-semibold px-3 py-1.5 rounded-full hover:bg-primary/20 transition-colors disabled:opacity-50"
+            >
+              {uploading ? 'Saving...' : user?.profile_picture ? 'Change Photo' : 'Add Photo'}
+            </button>
+            {user?.profile_picture && (
+              <button
+                onClick={handleRemovePicture}
+                disabled={uploading}
+                className="text-xs bg-destructive/10 text-destructive font-semibold px-3 py-1.5 rounded-full hover:bg-destructive/20 transition-colors disabled:opacity-50 flex items-center gap-1"
+              >
+                <Trash2 className="w-3 h-3" />
+                Remove
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { value: completed, label: "Lessons\nCompleted" },
+            { value: completedLessons.length, label: "Lessons\nCompleted" },
             { value: streak, label: "Day\nStreak" },
             { value: earnedBadges.length, label: "Badges\nEarned" },
           ].map((stat) => (

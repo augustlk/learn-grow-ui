@@ -7,12 +7,14 @@ interface User {
   email: string;
   current_streak: number;
   max_streak: number;
+  profile_picture?: string | null;
 }
 
 interface UserContextType {
   user: User | null;
   loading: boolean;
   setUser: (user: User | null) => void;
+  updateProfilePicture: (base64: string | null) => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -22,7 +24,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize with Alice (user_id 1) by default
     const storedUserId = localStorage.getItem('userId') || '1';
     const userId = parseInt(storedUserId);
 
@@ -34,6 +35,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         email: 'alice@example.com',
         current_streak: 5,
         max_streak: 10,
+        profile_picture: null,
       },
       2: {
         user_id: 2,
@@ -42,6 +44,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         email: 'bob@example.com',
         current_streak: 2,
         max_streak: 4,
+        profile_picture: null,
       },
       3: {
         user_id: 3,
@@ -50,18 +53,35 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         email: 'charlie@example.com',
         current_streak: 7,
         max_streak: 12,
+        profile_picture: null,
       },
     };
 
     const userData = mockUsers[userId];
     if (userData) {
-      setUser(userData);
+      // Fetch profile picture from API
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      fetch(`${apiUrl}/api/users/${userId}/profile-picture`)
+        .then((r) => r.json())
+        .then((data) => {
+          setUser({ ...userData, profile_picture: data.data || null });
+        })
+        .catch(() => {
+          setUser(userData);
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
+  const updateProfilePicture = (base64: string | null) => {
+    if (!user) return;
+    setUser({ ...user, profile_picture: base64 });
+  };
+
   return (
-    <UserContext.Provider value={{ user, loading, setUser }}>
+    <UserContext.Provider value={{ user, loading, setUser, updateProfilePicture }}>
       {children}
     </UserContext.Provider>
   );
