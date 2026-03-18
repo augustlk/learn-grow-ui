@@ -18,7 +18,7 @@ const pool = new Pool({
   user: process.env.DB_USER || process.env.VITE_DB_USER,
   password: process.env.DB_PASSWORD || process.env.VITE_DB_PASSWORD,
   database: process.env.DB_NAME || process.env.VITE_DB_NAME,
-  ssl: { rejectUnauthorized: false } // Required for most AWS RDS connections
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
 });
 
 // 3. Middleware
@@ -62,7 +62,7 @@ app.get('/api/units', async (req, res) => {
 const distPath = path.join(__dirname, 'dist');
 app.use(express.static(distPath));
 
-app.get('*', (req, res) => {
+app.get('/{*splat}', (req, res) => {
   if (req.path.startsWith('/api')) return res.status(404).send({error: 'Not found'});
   res.sendFile(path.join(distPath, 'index.html'));
 });
