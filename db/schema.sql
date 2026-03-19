@@ -166,6 +166,7 @@ CREATE TABLE User_Quizzes (
 CREATE TABLE Badges (
     badge_id SERIAL PRIMARY KEY,
     badge_name VARCHAR(100) NOT NULL,
+    badge_description VARCHAR(255) NOT NULL,
     badge_level INT NOT NULL
 );
 
