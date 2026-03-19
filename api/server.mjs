@@ -204,6 +204,139 @@ app.delete('/api/users/:userId/profile-picture', async (req, res) => {
   }
 });
 
+// --- Badge Routes ---
+
+// GET all badges
+app.get('/api/badges', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT badge_id, badge_name, badge_description, badge_level
+      FROM Badges
+      ORDER BY badge_level ASC, badge_id ASC
+    `);
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET user's earned badges
+app.get('/api/users/:userId/badges', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await pool.query(`
+      SELECT b.badge_id, b.badge_name, b.badge_description, b.badge_level, ub.earned_at
+      FROM User_Badges ub
+      JOIN Badges b ON b.badge_id = ub.badge_id
+      WHERE ub.user_id = $1
+      ORDER BY b.badge_level ASC, ub.earned_at DESC
+    `, [userId]);
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET badge by ID with user achievement status
+app.get('/api/badges/:badgeId/user/:userId', async (req, res) => {
+  try {
+    const { badgeId, userId } = req.params;
+    const badgeResult = await pool.query(`
+      SELECT badge_id, badge_name, badge_description, badge_level
+      FROM Badges
+      WHERE badge_id = $1
+    `, [badgeId]);
+
+    if (badgeResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Badge not found' });
+    }
+
+    const badgeData = badgeResult.rows[0];
+    const earnedResult = await pool.query(`
+      SELECT earned_at FROM User_Badges
+      WHERE user_id = $1 AND badge_id = $2
+    `, [userId, badgeId]);
+
+    const earned = earnedResult.rows.length > 0;
+    const earnedAt = earned ? earnedResult.rows[0].earned_at : null;
+
+    res.json({
+      success: true,
+      data: {
+        ...badgeData,
+        earned,
+        earnedAt
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST award badge to user
+app.post('/api/users/:userId/badges/:badgeId/award', async (req, res) => {
+  try {
+    const { userId, badgeId } = req.params;
+
+    // Check if badge exists
+    const badgeCheck = await pool.query(
+      'SELECT badge_id FROM Badges WHERE badge_id = $1',
+      [badgeId]
+    );
+    if (badgeCheck.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Badge not found' });
+    }
+
+    // Insert or ignore if already awarded
+    await pool.query(`
+      INSERT INTO User_Badges (user_id, badge_id, earned_at)
+      VALUES ($1, $2, CURRENT_TIMESTAMP)
+      ON CONFLICT (user_id, badge_id) DO NOTHING
+    `, [userId, badgeId]);
+
+    res.json({ success: true, message: 'Badge awarded successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET check if user has earned specific badge
+app.get('/api/users/:userId/badges/:badgeId/check', async (req, res) => {
+  try {
+    const { userId, badgeId } = req.params;
+    const result = await pool.query(`
+      SELECT earned_at FROM User_Badges
+      WHERE user_id = $1 AND badge_id = $2
+    `, [userId, badgeId]);
+
+    const earned = result.rows.length > 0;
+    res.json({
+      success: true,
+      data: {
+        earned,
+        earnedAt: earned ? result.rows[0].earned_at : null
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE badge from user (admin/testing only)
+app.delete('/api/users/:userId/badges/:badgeId', async (req, res) => {
+  try {
+    const { userId, badgeId } = req.params;
+    await pool.query(`
+      DELETE FROM User_Badges
+      WHERE user_id = $1 AND badge_id = $2
+    `, [userId, badgeId]);
+
+    res.json({ success: true, message: 'Badge removed' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 4. Static File Serving (For React Deployment)
 const distPath = path.join(__dirname, '..', 'dist');
 app.use(express.static(distPath));
