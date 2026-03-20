@@ -69,6 +69,118 @@ app.get('/api/users/:userId/lessons', async (req, res) => {
   }
 });
 
+// -----------------------------------------------------------------------
+// IN-PROGRESS LESSONS PAGE
+// -----------------------------------------------------------------------
+// Used by the in-progress lessons view (the new .tsx page, not Lesson.tsx).
+//
+// Call this on mount to populate the list:
+//   GET /api/users/{userId}/lessons/in-progress
+//   userId comes from useUserContext()
+//
+// Each item in data[] contains:
+//   lesson_id       → pass to /lesson?lessonId={lesson_id} for the Resume button
+//   lesson_title    → display name of the lesson
+//   unit_id         → id of the parent unit
+//   unit_title      → display name of the unit
+//   last_card_viewed → 0-indexed card the user stopped on
+//   total_cards     → total cards in the lesson (use for progress bar)
+//   started_at      → ISO timestamp (e.g. "Started 2 days ago")
+//
+// Progress % = (last_card_viewed / total_cards) * 100
+// Empty array means the user has no in-progress lessons.
+// -----------------------------------------------------------------------
+app.get('/api/users/:userId/lessons/in-progress', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await pool.query(`
+      SELECT
+        ul.lesson_id,
+        ul.last_card_viewed,
+        ul.started_at,
+        l.theme       AS lesson_title,
+        l.unit_id,
+        u.unit_title,
+        COUNT(lc.card_id) AS total_cards
+      FROM User_Lessons ul
+      JOIN Lessons l       ON l.lesson_id  = ul.lesson_id
+      JOIN Units u         ON u.unit_id    = l.unit_id
+      JOIN Lesson_Cards lc ON lc.lesson_id = ul.lesson_id
+      WHERE ul.user_id = $1
+        AND ul.status  = 'In Progress'
+      GROUP BY ul.lesson_id, ul.last_card_viewed, ul.started_at,
+               l.theme, l.unit_id, u.unit_title
+      ORDER BY ul.started_at DESC
+    `, [userId]);
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// -----------------------------------------------------------------------
+// LESSON RESUME — called by Lesson.tsx on mount
+// -----------------------------------------------------------------------
+// Call this when the lesson page loads to find out where the user left off.
+// If data is null, the user has never opened this lesson — start from card 0.
+//
+//   const res = await fetch(`/api/users/${userId}/lessons/${lessonId}`)
+//   const { data } = await res.json()
+//   const startCard = data?.last_card_viewed ?? 0
+//   setCurrentSection(startCard)
+//
+// Returns: { status, last_card_viewed } or null if no record exists.
+// -----------------------------------------------------------------------
+app.get('/api/users/:userId/lessons/:lessonId', async (req, res) => {
+  try {
+    const { userId, lessonId } = req.params;
+    const result = await pool.query(
+      'SELECT status, last_card_viewed FROM User_Lessons WHERE user_id = $1 AND lesson_id = $2',
+      [userId, lessonId]
+    );
+    res.json({ success: true, data: result.rows[0] ?? null });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// -----------------------------------------------------------------------
+// SAVE CARD PROGRESS — called by Lesson.tsx on every card navigation
+// -----------------------------------------------------------------------
+// Call this each time the user moves forward or backward through cards.
+// It creates the User_Lessons row on first visit and updates it on return.
+// Will NOT downgrade a completed lesson back to "In Progress".
+//
+//   await fetch(`/api/users/${userId}/lessons/${lessonId}/progress`, {
+//     method: 'POST',
+//     headers: { 'Content-Type': 'application/json' },
+//     body: JSON.stringify({ last_card_viewed: currentSection })  // 0-indexed
+//   })
+//
+// Returns: { status, last_card_viewed } reflecting the saved state.
+// -----------------------------------------------------------------------
+app.post('/api/users/:userId/lessons/:lessonId/progress', async (req, res) => {
+  try {
+    const { userId, lessonId } = req.params;
+    const { last_card_viewed } = req.body;
+    const result = await pool.query(`
+      INSERT INTO User_Lessons (user_id, lesson_id, status, last_card_viewed, started_at)
+      VALUES ($1, $2, 'In Progress', $3, CURRENT_TIMESTAMP)
+      ON CONFLICT (user_id, lesson_id)
+      DO UPDATE SET
+        last_card_viewed = EXCLUDED.last_card_viewed,
+        status = CASE
+          WHEN User_Lessons.status = 'Completed' THEN 'Completed'
+          ELSE 'In Progress'
+        END
+      RETURNING status, last_card_viewed
+    `, [userId, lessonId, last_card_viewed]);
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.post('/api/users/:userId/lessons/:lessonId/complete', async (req, res) => {
   try {
     const { userId, lessonId } = req.params;
