@@ -1,20 +1,41 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { badges } from "@/data/lessons";
 import { useUser } from "@/hooks/useUserContext";
-import { useUserLessons } from "@/hooks/useUserLessons";
-import { lessons } from "@/data/lessons";
+import { useUserLessonsWithStatus } from "@/hooks/useUserLessonsWithStatus";
+import { useInProgressLessons } from "@/hooks/useInProgressLessons";
 import { ChevronRight, Camera, Trash2 } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 
 const Profile = () => {
   const { user, loading, updateProfilePicture } = useUser();
-  const { userLessons } = useUserLessons(user?.user_id || null);
+  const { lessons: lessonCatalog, units } = useUserLessonsWithStatus(user?.user_id || null);
+  const { inProgressLessons: inProgressDetails } = useInProgressLessons(user?.user_id || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
-  const completedLessons = userLessons.filter((ul) => ul.status === "Completed");
-  const inProgressLessons = userLessons.filter((ul) => ul.status === "In Progress");
+  const lessonTitleById = useMemo(
+    () => new Map(lessonCatalog.map((lesson) => [lesson.lesson_id, lesson.title])),
+    [lessonCatalog]
+  );
+
+  const completedUnits = useMemo(
+    () =>
+      units
+        .filter((unit) => unit.lessons.length > 0 && unit.lessons.every((lesson) => lesson.status === "completed"))
+        .sort((a, b) => a.unit_order - b.unit_order),
+    [units]
+  );
+
+  const inProgressLessons = useMemo(
+    () =>
+      [...inProgressDetails].sort(
+        (a, b) =>
+          new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+      ),
+    [inProgressDetails]
+  );
+
   const earnedBadges = badges.filter((b) => b.earned);
   const streak = user?.current_streak || 12;
 
@@ -127,7 +148,7 @@ const Profile = () => {
         <div className="mx-4 -mt-6 bg-card rounded-2xl border border-border card-elevated">
           <div className="grid grid-cols-3 divide-x divide-border">
             {[
-              { value: completedLessons.length, label: "Lessons\nCompleted" },
+              { value: completedUnits.length, label: "Units\nCompleted" },
               { value: streak, label: "Day\nStreak" },
               { value: earnedBadges.length, label: "Badges\nEarned" },
             ].map((stat) => (
@@ -176,22 +197,36 @@ const Profile = () => {
           {inProgressLessons.length > 0 ? (
             <div className="flex flex-col gap-1">
               {inProgressLessons.map((userLesson) => {
-                const lesson = lessons.find((l) => l.id === userLesson.lesson_id);
-                return lesson ? (
-                  <div key={lesson.id} className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0">
+                const lessonTitle =
+                  userLesson.lesson_title ||
+                  lessonTitleById.get(userLesson.lesson_id) ||
+                  `Lesson ${userLesson.lesson_id}`;
+                const totalCards = Number(userLesson.total_cards || 0);
+                const currentCard = Math.min(
+                  Number(userLesson.last_card_viewed || 0) + 1,
+                  Math.max(totalCards, 1)
+                );
+                const progressPct = totalCards
+                  ? Math.round((currentCard / totalCards) * 100)
+                  : 0;
+
+                return (
+                  <div key={userLesson.lesson_id} className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0">
                     <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-extrabold text-accent">{lesson.id}</span>
+                      <span className="text-xs font-extrabold text-accent">{userLesson.lesson_id}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-foreground truncate">{lesson.title}</p>
-                      <p className="text-[10px] text-muted-foreground">In Progress</p>
+                      <p className="text-xs font-bold text-foreground truncate">{lessonTitle}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {totalCards ? `Card ${currentCard}/${totalCards}` : "In Progress"}
+                      </p>
                     </div>
                     {/* progress bar */}
                     <div className="w-14 h-1.5 bg-muted rounded-full overflow-hidden flex-shrink-0">
-                      <div className="h-full bg-accent rounded-full" style={{ width: "40%" }} />
+                      <div className="h-full bg-accent rounded-full" style={{ width: `${progressPct}%` }} />
                     </div>
                   </div>
-                ) : null;
+                );
               })}
             </div>
           ) : (
@@ -202,27 +237,30 @@ const Profile = () => {
         {/* ── COMPLETED LESSONS ───────────────────────────────────── */}
         <div className="mx-4 bg-card rounded-2xl border border-border card-elevated p-4">
           <h3 className="text-sm font-extrabold text-foreground mb-3 flex items-center gap-1.5">
-            ✅ Completed Lessons
+            ✅ Completed Units ({completedUnits.length}/5)
           </h3>
-          {completedLessons.length > 0 ? (
+          {completedUnits.length > 0 ? (
             <div className="flex flex-col gap-1">
-              {completedLessons.map((userLesson) => {
-                const lesson = lessons.find((l) => l.id === userLesson.lesson_id);
-                return lesson ? (
-                  <div key={lesson.id} className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0">
+              {completedUnits.map((unit) => {
+                return (
+                  <div key={unit.unit_id} className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0">
                     <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
                       <span className="text-xs font-extrabold text-primary-foreground">✓</span>
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-foreground">{lesson.title}</p>
-                      <p className="text-[10px] text-muted-foreground">Completed</p>
+                      <p className="text-xs font-bold text-foreground">
+                        Unit {unit.unit_order}: {unit.unit_title}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {unit.lessons.length}/{unit.lessons.length} lessons completed
+                      </p>
                     </div>
                   </div>
-                ) : null;
+                );
               })}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">No completed lessons yet</p>
+            <p className="text-xs text-muted-foreground">No completed units yet</p>
           )}
         </div>
 

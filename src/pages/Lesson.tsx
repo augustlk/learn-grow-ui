@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import eagleMascot from "@/assets/eagle-mascot.png";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { lessonContentMap } from "@/data/lessons";
+import { useUser } from "@/hooks/useUserContext";
 
 interface ApiCard {
   card_id: number;
@@ -80,6 +81,7 @@ const NavButtons = ({
 const Lesson = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user } = useUser();
 
   const lessonIdParam = searchParams.get("lessonId");
   const lessonId = Number(lessonIdParam);
@@ -88,6 +90,7 @@ const Lesson = () => {
   const [cards, setCards] = useState<ApiCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const hasLoadedResumePosition = useRef(false);
 
   useEffect(() => {
     setCurrentSection(0);
@@ -123,6 +126,59 @@ const Lesson = () => {
       })
       .finally(() => setLoading(false));
   }, [lessonId]);
+
+  useEffect(() => {
+    if (!user?.user_id || !Number.isInteger(lessonId) || lessonId <= 0 || cards.length === 0) {
+      return;
+    }
+
+    const apiUrl = import.meta.env.VITE_API_URL || "";
+    const loadResumePosition = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/api/users/${user.user_id}/lessons/${lessonId}`);
+        if (!response.ok) return;
+
+        const payload = await response.json();
+        const savedCard = payload?.data?.last_card_viewed;
+        if (typeof savedCard === "number") {
+          const safeCard = Math.min(Math.max(savedCard, 0), cards.length - 1);
+          setCurrentSection(safeCard);
+        }
+      } catch (err) {
+        console.error("Failed to load resume position:", err);
+      } finally {
+        hasLoadedResumePosition.current = true;
+      }
+    };
+
+    loadResumePosition();
+  }, [user?.user_id, lessonId, cards.length]);
+
+  useEffect(() => {
+    if (!user?.user_id || !Number.isInteger(lessonId) || lessonId <= 0) {
+      return;
+    }
+
+    if (!hasLoadedResumePosition.current || loading || error || cards.length === 0) {
+      return;
+    }
+
+    const apiUrl = import.meta.env.VITE_API_URL || "";
+    const controller = new AbortController();
+
+    fetch(`${apiUrl}/api/users/${user.user_id}/lessons/${lessonId}/progress`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ last_card_viewed: currentSection }),
+      signal: controller.signal,
+    }).catch((err) => {
+      if (err.name !== "AbortError") {
+        console.error("Failed to save lesson progress:", err);
+      }
+    });
+
+    return () => controller.abort();
+  }, [user?.user_id, lessonId, currentSection, loading, error, cards.length]);
 
   const goToQuiz = () => {
     if (!Number.isInteger(lessonId) || lessonId <= 0) return;
