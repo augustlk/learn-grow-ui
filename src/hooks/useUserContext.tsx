@@ -57,6 +57,19 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       },
     };
 
+// Potential replacement for the mock users
+
+ // useEffect(() => {
+   // const userId = Number(localStorage.getItem("userId") || 1);
+   // const apiUrl = import.meta.env.VITE_API_URL || "";
+
+   // fetch(`${apiUrl}/api/users/${userId}`)
+   //  .then(res => res.json())
+   //  .then(data => setUser(data.data))
+   // .catch(() => setUser(null))
+   // .finally(() => setLoading(false));
+ // }, []);
+
     const userData = mockUsers[userId];
     if (userData) {
       // Fetch profile picture from API

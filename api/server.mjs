@@ -25,6 +25,49 @@ const pool = new Pool({
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); // increased limit for base64 images
 
+const toUtcDayKey = (value) => new Date(value).toISOString().slice(0, 10);
+
+const addUtcDays = (dayKey, amount) => {
+  const date = new Date(`${dayKey}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + amount);
+  return date.toISOString().slice(0, 10);
+};
+
+const isConsecutiveUtcDay = (previousDayKey, nextDayKey) =>
+  addUtcDays(previousDayKey, 1) === nextDayKey;
+
+async function updateUserStreakForNewBadge(client, userId, earnedAt) {
+  const userResult = await client.query(
+    `SELECT current_streak, max_streak FROM Users WHERE user_id = $1 FOR UPDATE`,
+    [userId]
+  );
+
+  const previousBadgeResult = await client.query(
+    `SELECT earned_at FROM User_Badges WHERE user_id = $1 AND earned_at < $2 ORDER BY earned_at DESC LIMIT 1`,
+    [userId, earnedAt]
+  );
+
+  const currentStreak = Number(userResult.rows[0].current_streak || 0);
+  const maxStreak = Number(userResult.rows[0].max_streak || 0);
+
+  let nextCurrentStreak = 1;
+
+  if (previousBadgeResult.rows.length > 0) {
+    const prev = toUtcDayKey(previousBadgeResult.rows[0].earned_at);
+    const curr = toUtcDayKey(earnedAt);
+
+    if (prev === curr) nextCurrentStreak = currentStreak;
+    else if (isConsecutiveUtcDay(prev, curr)) nextCurrentStreak = currentStreak + 1;
+  }
+
+  const nextMax = Math.max(maxStreak, nextCurrentStreak);
+
+  await client.query(
+    `UPDATE Users SET current_streak=$1, max_streak=$2 WHERE user_id=$3`,
+    [nextCurrentStreak, nextMax, userId]
+  );
+}
+
 // --- API Routes ---
 
 app.get('/api/health', (req, res) => {
@@ -387,28 +430,48 @@ app.get('/api/badges/:badgeId/user/:userId', async (req, res) => {
 
 // POST award badge to user
 app.post('/api/users/:userId/badges/:badgeId/award', async (req, res) => {
+  const client = await pool.connect();
+
   try {
     const { userId, badgeId } = req.params;
 
-    // Check if badge exists
-    const badgeCheck = await pool.query(
-      'SELECT badge_id FROM Badges WHERE badge_id = $1',
-      [badgeId]
+    await client.query('BEGIN');
+
+    const insertResult = await client.query(
+      `INSERT INTO User_Badges (user_id, badge_id, earned_at)
+       VALUES ($1, $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (user_id, badge_id) DO NOTHING
+       RETURNING earned_at`,
+      [userId, badgeId]
     );
-    if (badgeCheck.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Badge not found' });
+
+    if (insertResult.rows.length > 0) {
+      await updateUserStreakForNewBadge(client, userId, insertResult.rows[0].earned_at);
     }
 
-    // Insert or ignore if already awarded
-    await pool.query(`
-      INSERT INTO User_Badges (user_id, badge_id, earned_at)
-      VALUES ($1, $2, CURRENT_TIMESTAMP)
-      ON CONFLICT (user_id, badge_id) DO NOTHING
-    `, [userId, badgeId]);
+    await client.query('COMMIT');
 
-    res.json({ success: true, message: 'Badge awarded successfully' });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.json({ success: true });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ success: false, error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// GET user info for streaks
+app.get('/api/users/:userId', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT user_id, first_name, last_name, email, current_streak, max_streak, profile_picture
+       FROM Users WHERE user_id = $1`,
+      [req.params.userId]
+    );
+
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

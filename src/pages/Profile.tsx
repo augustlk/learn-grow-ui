@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { badges } from "@/data/lessons";
 import { useUser } from "@/hooks/useUserContext";
@@ -15,12 +15,30 @@ const Profile = () => {
 
   const completedLessons = userLessons.filter((ul) => ul.status === "Completed");
   const inProgressLessons = userLessons.filter((ul) => ul.status === "In Progress");
-  const earnedBadges = badges.filter((b) => b.earned);
-  const streak = user?.current_streak || 12;
+  const streak = user?.current_streak ?? 0;
 
   const daysOfWeek = ["S", "M", "T", "W", "T", "F", "S"];
   // Mark the first `streak` days (capped at 7) as active
   const activeToday = daysOfWeek.map((_, i) => i < Math.min(streak, 7));
+
+  const [earnedBadgeIds, setEarnedBadgeIds] = useState(new Set<number>());
+
+  useEffect(() => {
+    if (!user?.user_id) return;
+
+    const apiUrl = import.meta.env.VITE_API_URL || "";
+
+    fetch(`${apiUrl}/api/users/${user.user_id}/badges`)
+      .then(res => res.json())
+      .then(data => {
+        setEarnedBadgeIds(new Set(data.data.map((b: any) => b.badge_id)));
+      });
+  }, [user?.user_id]);
+
+  const earnedBadges = badges.map(b => ({
+    ...b,
+    earned: earnedBadgeIds.has(b.id),
+  }));
 
   // ── file upload handlers (unchanged) ──────────────────────────────────
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,7 +165,7 @@ const Profile = () => {
             🏅 Badges
           </h3>
           <div className="flex gap-2">
-            {badges.map((badge) => (
+            {earnedBadges.map((badge) => (
               <div
                 key={badge.id}
                 className={`flex-1 flex flex-col items-center gap-1 p-2.5 rounded-xl border ${
