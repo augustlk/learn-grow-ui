@@ -120,16 +120,15 @@ copy .env.example .env
 Then open `.env` in your code editor and fill in your credentials. The file should look like this:
 
 ```env
-# API Configuration
-VITE_API_URL=http://localhost:3000
-API_PORT=3000
-
 # Database Configuration
-VITE_DB_HOST=localhost
-VITE_DB_PORT=5432
-VITE_DB_USER=postgres
-VITE_DB_PASSWORD=<YOUR_POSTGRES_PASSWORD>
-VITE_DB_NAME=nutrition_lessons
+DB_USER=postgres
+DB_PASSWORD=password
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=learn_grow
+
+# Server Configuration
+PORT=3001
 ```
 
 **Important:** Replace `<YOUR_POSTGRES_PASSWORD>` with your actual PostgreSQL password. If you did not set a password when installing PostgreSQL, try leaving the value blank or using `postgres`.
@@ -204,7 +203,7 @@ You should see a row for `lesson_id = 2` (Proteins) with `status = 'Completed'` 
 **Issue: "Page showing 'Connecting to API...'" for a long time**
 - Check that both servers are running (Terminal 1 and Terminal 2)
 - Open browser Developer Tools (F12) → Console tab to see any error messages
-- Verify `VITE_API_URL=http://localhost:3000` in `.env`
+- Verify `VITE_API_URL=http://localhost:3001` in `.env`
 
 **Issue: "Cannot find module" after fresh install**
 - Try deleting `node_modules` folder and `.env` cache:
@@ -221,3 +220,23 @@ You should see a row for `lesson_id = 2` (Proteins) with `status = 'Completed'` 
 ### Stopping the Application
 
 Press `Ctrl+C` in both terminal windows to stop the servers.
+
+## 8. EARS Requirements
+**Complete**
+
+- The system shall accept display nutrition lessons to the user.
+- The system shall provide score feedback after a quiz is taken by a user.
+- When a user selects a lesson, the system shall display the lesson and lesson cards.
+- While the system is providing a lesson to the user, the system shall show a lesson progress indicator.
+- When a user selects a wrong answer on a quiz, the system shall show it as incorrect with the correct answer highlighted.
+
+**Not Complete**
+
+- When a user opens their profile, the system shall display current user's progress page.
+- When a user selects their badges page, the system shall display all badges the user has obtained.
+- When a user opens the settings page, the system shall display the settings page.
+- When a user selects a, the system shall adjust the playback speed for sign videos accordingly.
+- While quiz is being taken, the system will not allow the user to proceed until an answer is selected.
+- The system shall accept valid login requests
+- When a new user starts the app, the system shall suggest they make an account.
+- When a not logged in user uses the app, the system shall only allow the 1st lesson to be used.

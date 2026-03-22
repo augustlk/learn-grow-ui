@@ -66,7 +66,7 @@ const Quiz = () => {
     setActiveQuiz([]);
     setLoadingQuiz(true);
 
-    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+    const apiUrl = import.meta.env.VITE_API_URL || "";
     fetch(`${apiUrl}/api/lessons/${lessonId}/quiz`)
       .then((r) => r.json())
       .then((data) => {
@@ -138,7 +138,7 @@ const Quiz = () => {
     // Save quiz result to DB
     if (quizId) {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+        const apiUrl = import.meta.env.VITE_API_URL || "";
         await fetch(
           `${apiUrl}/api/users/${user.user_id}/quiz/${quizId}/result`,
           {

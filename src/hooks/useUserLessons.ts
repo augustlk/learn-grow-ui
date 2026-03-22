@@ -20,7 +20,7 @@ export const useUserLessons = (userId: number | null) => {
 
     setLoading(true);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const apiUrl = import.meta.env.VITE_API_URL || '';
       // Add cache buster to force fresh data
       const response = await fetch(`${apiUrl}/api/users/${userId}/lessons?t=${Date.now()}`);
       

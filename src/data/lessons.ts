@@ -45,6 +45,16 @@ export const lessons: Lesson[] = [
     "level": 3,
     "extraLinks": "https://www.nutrition.gov"
   },
+  {
+    "id": 5,
+    "title": "Reading Labels & Making Informed Choices",
+    "description": "Unit 5 - Reading labels and making better food choices",
+    "duration": "5 min",
+    "status": "active",
+    "category": "Reading Labels",
+    "level": 5,
+    "extraLinks": "https://www.nutrition.gov"
+  },
 ];
 
 export interface Badge {
@@ -177,6 +187,36 @@ export const lessonContentMap: Record<number, LessonContent> = {
       },
     ],
     keyTakeaway: "Micronutrients may be needed in small amounts, but they are critical for your health. Eat a wide variety of colorful whole foods to cover your vitamin and mineral needs without relying on supplements.",
+  },
+
+  // ─── UNIT 5: Reading Labels & Making Informed Choices ───
+  5: {
+    title: "Reading Labels & Making Informed Choices",
+    duration: "5 min",
+    whyShouldICare: "Reading food labels helps you cut through marketing and choose products that actually support your health goals. It is one of the most practical nutrition skills you can use every time you shop.",
+    sections: [
+      {
+        heading: "Start with Serving Size",
+        content: "The Nutrition Facts label is a regulated, standardized breakdown of what is in a packaged food. Start at the top with serving size and servings per container, since every number below applies to one serving. If a snack has 150 calories per serving but 3 servings per bag, eating the whole bag means 450 calories. Serving size is often manipulated to make products look healthier than they are.",
+      },
+      {
+        heading: "Read the Core Nutrients",
+        content: "Work from top to bottom: calories per serving, total fat (limit saturated fat and avoid trans fat), sodium, and total carbohydrates. In carbohydrates, focus on dietary fiber and added sugars. Fiber is beneficial and supports fullness and blood sugar control, while added sugars provide extra calories with little nutritional value.",
+      },
+      {
+        heading: "Use % Daily Value to Compare",
+        content: "The % Daily Value (%DV) shows how much one serving contributes to your daily intake based on a 2,000-calorie diet. A quick rule: 5% DV or less is low, 20% DV or more is high. Aim for foods higher in fiber, calcium, iron, and vitamin D, and lower in saturated fat, sodium, and added sugars.",
+      },
+      {
+        heading: "Check Ingredient Lists and Claims",
+        content: "Ingredient lists are ordered by weight, from most to least. If sugar or refined flour appears near the top, that food is mostly made of those ingredients. Front-of-package words like 'natural' or 'wholesome' can be misleading marketing language, so rely on the Nutrition Facts label and ingredient list instead of the front label.",
+      },
+      {
+        heading: "Compare Products Fairly",
+        content: "When choosing between two products, first compare equivalent serving sizes. Then prioritize more fiber, less added sugar, less sodium, and enough protein. This method makes food comparisons more accurate and helps you make better choices quickly without overthinking every label.",
+      },
+    ],
+    keyTakeaway: "Food labels are practical decision tools. Start with serving size, review key nutrients, use %DV to compare, and verify ingredient quality instead of trusting front-label marketing.",
   },
 };
 
@@ -346,6 +386,50 @@ export const quizMap: Record<number, QuizQuestion[]> = {
       options: ["B and C", "A, D, E, and K", "C and D", "B6, B12, and C"],
       correctIndex: 1,
       explanation: "Vitamins A, D, E, and K are fat-soluble, meaning they are stored in your body's fat tissue and liver. You need dietary fat to absorb them properly.",
+    },
+  ],
+
+  // ─── UNIT 5 QUIZ ───
+  5: [
+    {
+      id: 1,
+      question: "What is the most important part of the Nutrition Facts label to check first?",
+      image: "📦",
+      options: ["Calories per serving", "Serving size and servings per container", "Total fat", "Protein"],
+      correctIndex: 1,
+      explanation: "Serving size and servings per container determine how to interpret every number on the label. If you eat multiple servings, you must multiply calories and nutrients accordingly.",
+    },
+    {
+      id: 2,
+      question: "What does a % Daily Value of 20% or more usually indicate?",
+      image: "📊",
+      options: ["Low amount of that nutrient", "High amount of that nutrient", "The food is unhealthy", "The nutrient is not important"],
+      correctIndex: 1,
+      explanation: "A common rule of thumb is 5% DV or less is low, while 20% DV or more is high for that nutrient in one serving.",
+    },
+    {
+      id: 3,
+      question: "What is the daily sodium limit for most adults?",
+      image: "🧂",
+      options: ["500mg", "1,200mg", "2,300mg", "5,000mg"],
+      correctIndex: 2,
+      explanation: "Most adults are advised to stay under about 2,300mg of sodium per day. Many packaged foods can contribute a large portion of this in just one serving.",
+    },
+    {
+      id: 4,
+      question: "Why can front-of-package claims like 'natural' be misleading?",
+      image: "🏷️",
+      options: ["They are always false", "They are mostly unregulated marketing terms", "They only apply to fresh foods", "They are required by nutrition law"],
+      correctIndex: 1,
+      explanation: "Terms like 'natural' and 'wholesome' are often marketing language and may not reflect the product's overall nutrition quality.",
+    },
+    {
+      id: 5,
+      question: "When comparing two packaged foods, what should you do first?",
+      image: "⚖️",
+      options: ["Choose the one with fewer ingredients", "Choose the cheaper one", "Normalize and compare serving sizes", "Choose the one with the boldest health claim"],
+      correctIndex: 2,
+      explanation: "Comparisons are only accurate when the serving sizes match. After normalizing serving sizes, compare fiber, added sugar, sodium, and protein.",
     },
   ],
 };

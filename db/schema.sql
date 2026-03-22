@@ -28,7 +28,8 @@ CREATE TABLE Users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     current_streak INT DEFAULT 0,
-    max_streak INT DEFAULT 0
+    max_streak INT DEFAULT 0,
+    profile_picture TEXT
 );
 
 -- ==========================
