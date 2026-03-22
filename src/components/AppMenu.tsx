@@ -1,4 +1,4 @@
-import { X, User, BookOpen, Flame, Settings, Info, MessageCircle, LogIn } from "lucide-react";
+import { X, User, BookOpen, Flame, Settings, Info, MessageCircle, LogIn, Clock3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface AppMenuProps {
@@ -9,6 +9,7 @@ interface AppMenuProps {
 const menuItems = [
   { icon: User, label: "Profile", description: "View streaks, badges, progress", path: "/profile" },
   { icon: BookOpen, label: "Lessons", description: "What would you like to learn next?", path: "/" },
+  { icon: Clock3, label: "In Progress", description: "Resume lessons where you left off", path: "/lessons/in-progress" },
   { icon: Flame, label: "Streaks", description: "Don't miss your daily goals!", path: "/streaks" },
   { icon: Settings, label: "Settings", description: "Adjust your preferences", path: "/settings" },
   { icon: Info, label: "About", description: "Learn about our mission", path: "/about" },
