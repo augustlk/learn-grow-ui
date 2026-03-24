@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import AppLayout from "@/components/AppLayout";
-import { Bell, Moon, Clock, RotateCcw, ChevronRight, Volume2 } from "lucide-react";
+import { Bell, Moon, Clock, RotateCcw, ChevronRight, Volume2, Pencil } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { ReminderTimeDialog, formatDisplayTime } from "@/components/ReminderTimeDialog";
+import { useUser } from "@/hooks/useUserContext";
 
 const Settings = () => {
+  const { user } = useUser();
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("darkMode");
@@ -11,6 +14,8 @@ const Settings = () => {
   });
   const [soundEffects, setSoundEffects] = useState(true);
   const [dailyReminder, setDailyReminder] = useState(true);
+  const [reminderTime, setReminderTime] = useState("09:00");
+  const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
 
   useEffect(() => {
     if (darkMode) {
@@ -20,6 +25,42 @@ const Settings = () => {
     }
     localStorage.setItem("darkMode", JSON.stringify(darkMode));
   }, [darkMode]);
+
+  // Load preferences from backend on mount
+  useEffect(() => {
+    if (!user?.user_id) return;
+    const apiUrl = import.meta.env.VITE_API_URL || "";
+    fetch(`${apiUrl}/api/users/${user.user_id}/preferences`)
+      .then((r) => r.json())
+      .then(({ data }) => {
+        if (!data) return;
+        setDailyReminder(data.reminder_enabled);
+        setReminderTime(data.reminder_time.slice(0, 5)); // "09:00:00" -> "09:00"
+      })
+      .catch(() => {});
+  }, [user?.user_id]);
+
+  const handleReminderToggle = async (enabled: boolean) => {
+    setDailyReminder(enabled); // optimistic
+    if (!user?.user_id) return;
+    const apiUrl = import.meta.env.VITE_API_URL || "";
+    await fetch(`${apiUrl}/api/users/${user.user_id}/preferences`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reminder_enabled: enabled, reminder_time: reminderTime }),
+    }).catch(() => {});
+  };
+
+  const handleSaveReminderTime = async (time: string) => {
+    if (!user?.user_id) return;
+    const apiUrl = import.meta.env.VITE_API_URL || "";
+    await fetch(`${apiUrl}/api/users/${user.user_id}/preferences`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reminder_enabled: dailyReminder, reminder_time: time }),
+    }).catch(() => {});
+    setReminderTime(time);
+  };
 
   return (
     <AppLayout>
@@ -49,10 +90,16 @@ const Settings = () => {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-foreground">Daily Reminder</p>
-                  <p className="text-xs text-muted-foreground">9:00 AM every day</p>
+                  <button
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => setReminderDialogOpen(true)}
+                  >
+                    {formatDisplayTime(reminderTime)}
+                    <Pencil className="w-3 h-3" />
+                  </button>
                 </div>
               </div>
-              <Switch checked={dailyReminder} onCheckedChange={setDailyReminder} />
+              <Switch checked={dailyReminder} onCheckedChange={handleReminderToggle} />
             </div>
           </div>
         </section>
@@ -113,6 +160,13 @@ const Settings = () => {
           <p className="text-xs text-muted-foreground">Made with 💚 for your health</p>
         </div>
       </div>
+
+      <ReminderTimeDialog
+        open={reminderDialogOpen}
+        currentTime={reminderTime}
+        onOpenChange={setReminderDialogOpen}
+        onSave={handleSaveReminderTime}
+      />
     </AppLayout>
   );
 };

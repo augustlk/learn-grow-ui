@@ -496,6 +496,47 @@ app.delete('/api/users/:userId/badges/:badgeId', async (req, res) => {
   }
 });
 
+// --- Preferences Routes ---
+
+// GET user preferences (auto-provisions defaults if no row exists)
+app.get('/api/users/:userId/preferences', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    await pool.query(
+      'INSERT INTO user_preferences (user_id) VALUES ($1) ON CONFLICT DO NOTHING',
+      [userId]
+    );
+    const result = await pool.query(
+      'SELECT reminder_enabled, reminder_time FROM user_preferences WHERE user_id = $1',
+      [userId]
+    );
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PATCH user preferences
+app.patch('/api/users/:userId/preferences', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { reminder_enabled, reminder_time } = req.body;
+    const result = await pool.query(
+      `UPDATE user_preferences
+       SET reminder_enabled = $2, reminder_time = $3
+       WHERE user_id = $1
+       RETURNING reminder_enabled, reminder_time`,
+      [userId, reminder_enabled, reminder_time]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Preferences not found' });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 4. Static File Serving (For React Deployment)
 const distPath = path.join(__dirname, '..', 'dist');
 app.use(express.static(distPath));
