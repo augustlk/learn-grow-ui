@@ -430,17 +430,22 @@ INSERT INTO Quiz_Answers (question_id, answer_text, is_correct) VALUES
 -- BADGES
 -- ==========================================
 
-INSERT INTO Badges (badge_name, badge_description, badge_level) VALUES
-('First Lesson', 'Complete your first lesson', 1),
-('5-Day Streak', 'Login for 5 consecutive days', 1),
-('Quiz Champion', 'Pass your first quiz', 1),
-('Perfect Score', 'Score 5/5 on any quiz', 2),
-('10-Day Streak', 'Maintain a 10-day login streak', 2),
-('Unit Master', 'Complete all lessons in any unit', 2),
-('5 Quizzes Passed', 'Pass 5 quizzes total', 3),
-('30-Day Streak', 'Maintain a 30-day login streak', 3),
-('Lesson Completionist', 'Complete all 15 lessons', 4),
-('Nutrition Expert', 'Pass all 15 quizzes with perfect scores', 4);
+INSERT INTO Badges (badge_name, badge_description, badge_level, icon) VALUES
+('First Lesson', 'Complete your first lesson', 1, '📚'),
+('5-Day Streak', 'Login for 5 consecutive days', 1, '🔥'),
+('Quiz Champion', 'Pass your first quiz', 1, '🏆'),
+('Perfect Score', 'Score 5/5 on any quiz', 2, '⭐'),
+('10-Day Streak', 'Maintain a 10-day login streak', 2, '⚡'),
+('Unit Master', 'Complete all lessons in any unit', 2, '🎯'),
+('5 Quizzes Passed', 'Pass 5 quizzes total', 3, '📝'),
+('30-Day Streak', 'Maintain a 30-day login streak', 3, '💎'),
+('Lesson Completionist', 'Complete all 15 lessons', 4, '🎓'),
+('Nutrition Expert', 'Pass all 15 quizzes with perfect scores', 4, '🥗'),
+('Nutrition Newbie', 'Complete the Welcome & Nutrition Basics unit', 1, '🌱'),
+('Macro Master', 'Complete the Macronutrients unit', 1, '💪'),
+('Micro Maven', 'Complete the Micronutrients unit', 1, '🔬'),
+('Gut Guru', 'Complete the Digestion & Nutrient Absorption unit', 1, '🫀'),
+('Label Reader', 'Complete the Reading Labels unit', 1, '🏷️');
 
 
 -- ==========================================
