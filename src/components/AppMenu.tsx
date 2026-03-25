@@ -1,4 +1,4 @@
-import { X, User, BookOpen, Flame, Settings, Info, MessageCircle, LogIn, Clock3 } from "lucide-react";
+import { X, User, BookOpen, Flame, Settings, Info, LogIn, Clock3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface AppMenuProps {
