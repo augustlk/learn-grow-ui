@@ -1,19 +1,17 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { apiFetch } from "@/lib/api";
 
 interface User {
   user_id: number;
-  first_name: string;
-  last_name: string;
   email: string;
-  current_streak: number;
-  max_streak: number;
   profile_picture?: string | null;
 }
 
 interface UserContextType {
   user: User | null;
   loading: boolean;
-  setUser: (user: User | null) => void;
+  login: (token: string, userId: number) => void;
+  logout: () => void;
   updateProfilePicture: (base64: string | null) => void;
 }
 
@@ -23,57 +21,45 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // 🔥 Load user on app start
   useEffect(() => {
-    const storedUserId = localStorage.getItem('userId') || '1';
-    const userId = parseInt(storedUserId);
+    const token = localStorage.getItem("token");
 
-    const mockUsers: Record<number, User> = {
-      1: {
-        user_id: 1,
-        first_name: 'Alice',
-        last_name: 'Johnson',
-        email: 'alice@example.com',
-        current_streak: 5,
-        max_streak: 10,
-        profile_picture: null,
-      },
-      2: {
-        user_id: 2,
-        first_name: 'Bob',
-        last_name: 'Smith',
-        email: 'bob@example.com',
-        current_streak: 2,
-        max_streak: 4,
-        profile_picture: null,
-      },
-      3: {
-        user_id: 3,
-        first_name: 'Charlie',
-        last_name: 'Brown',
-        email: 'charlie@example.com',
-        current_streak: 7,
-        max_streak: 12,
-        profile_picture: null,
-      },
-    };
-
-    const userData = mockUsers[userId];
-    if (userData) {
-      // Fetch profile picture from API
-      const apiUrl = import.meta.env.VITE_API_URL || '';
-      fetch(`${apiUrl}/api/users/${userId}/profile-picture`)
-        .then((r) => r.json())
-        .then((data) => {
-          setUser({ ...userData, profile_picture: data.data || null });
-        })
-        .catch(() => {
-          setUser(userData);
-        })
-        .finally(() => setLoading(false));
-    } else {
+    if (!token) {
       setLoading(false);
+      return;
     }
+
+    apiFetch("/auth/me")
+      .then((data) => {
+        setUser(data.user);
+      })
+      .catch(() => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userId");
+        setUser(null);
+      })
+      .finally(() => setLoading(false));
   }, []);
+
+  // 🔐 Login handler
+  const login = (token: string, userId: number) => {
+    localStorage.setItem("token", token);
+    localStorage.setItem("userId", userId.toString());
+
+    // fetch fresh user
+    apiFetch("/auth/me").then((data) => {
+      setUser(data.user);
+    });
+  };
+
+  // 🔓 Logout handler
+  const logout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userId");
+    setUser(null);
+    window.location.href = "/auth";
+  };
 
   const updateProfilePicture = (base64: string | null) => {
     if (!user) return;
@@ -81,7 +67,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <UserContext.Provider value={{ user, loading, setUser, updateProfilePicture }}>
+    <UserContext.Provider
+      value={{ user, loading, login, logout, updateProfilePicture }}
+    >
       {children}
     </UserContext.Provider>
   );
@@ -90,7 +78,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 export const useUser = () => {
   const context = useContext(UserContext);
   if (!context) {
-    throw new Error('useUser must be used within a UserProvider');
+    throw new Error("useUser must be used within a UserProvider");
   }
   return context;
 };

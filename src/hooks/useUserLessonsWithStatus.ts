@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useUserLessons } from './useUserLessons';
+import { apiFetch } from "@/lib/api";
 
 export interface LessonWithStatus {
   id: number;
@@ -49,8 +50,7 @@ export const useUserLessonsWithStatus = (userId: number | null) => {
   const fetchAllLessons = useCallback(async () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || '';
-      const response = await fetch(`${apiUrl}/api/units`);
-      const data = await response.json();
+      const data = await apiFetch(`/units`);
 
       if (data.success && Array.isArray(data.data)) {
         setRawUnits(data.data);
