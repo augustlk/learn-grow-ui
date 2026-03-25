@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { apiFetch } from "@/lib/api";
 
 interface UserLesson {
   user_lesson_id?: number;
@@ -28,7 +29,7 @@ export const useUserLessons = (userId: number | null) => {
         throw new Error('Failed to fetch user lessons');
       }
 
-      const data = await response.json();
+      const data = await apiFetch(`/users/${userId}/lessons`);
       console.log('Fetched user lessons from API:', data.data);
       setUserLessons(data.data);
     } catch (error) {

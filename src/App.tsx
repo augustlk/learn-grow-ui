@@ -12,9 +12,9 @@ import Auth from "./pages/Auth";
 import Streaks from "./pages/Streaks";
 import Settings from "./pages/Settings";
 import About from "./pages/About";
-import HelperBot from "./pages/HelperBot";
 import NotFound from "./pages/NotFound";
 import Unit from "./pages/Unit";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -27,15 +27,14 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/profile" element={<Profile />} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/unit/:unitId" element={<Unit />} />
-            <Route path="/lesson" element={<Lesson />} />
-            <Route path="/quiz" element={<Quiz />} />
+            <Route path="/lesson" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />
+            <Route path="/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/streaks" element={<Streaks />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/streaks" element={<ProtectedRoute><Streaks /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/about" element={<About />} />
-            <Route path="/bot" element={<HelperBot />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

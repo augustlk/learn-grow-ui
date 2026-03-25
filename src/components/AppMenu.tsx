@@ -12,8 +12,7 @@ const menuItems = [
   { icon: Flame, label: "Streaks", description: "Don't miss your daily goals!", path: "/streaks" },
   { icon: Settings, label: "Settings", description: "Adjust your preferences", path: "/settings" },
   { icon: Info, label: "About", description: "Learn about our mission", path: "/about" },
-  { icon: MessageCircle, label: "Helper Bot", description: "Ask our bot questions as you go!", path: "/bot" },
-  { icon: LogIn, label: "Sign In / Sign Up", description: "Create or access your account", path: "/auth" },
+  { icon: LogIn, label: "Sign In / Sign Up", description: "Create or access your account", path: "/login" },
 ];
 
 const AppMenu = ({ isOpen, onClose }: AppMenuProps) => {

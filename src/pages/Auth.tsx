@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import eagleMascot from "@/assets/eagle-mascot.png";
+import { useUser } from "@/hooks/useUserContext";
 
 const Auth = () => {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -14,10 +15,40 @@ const Auth = () => {
   const [name, setName] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    const { login } = useUser();
     e.preventDefault();
-    // Mock auth — navigate to home
-    navigate("/");
+
+    const endpoint =
+      mode === "signin" ? "/api/auth/login" : "/api/auth/register";
+
+    const body =
+      mode === "signin"
+        ? { email, password }
+        : { email, password };
+
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+
+    if (data.token) {
+      // LOGIN
+      login(data.token, data.userId);
+
+      const redirect =
+        localStorage.getItem("redirectAfterLogin") || "/";
+      navigate(redirect);
+    } else if (data.success) {
+      // REGISTER → auto switch to login
+      alert("Account created! Please sign in.");
+      setMode("signin");
+    } else {
+      alert(data.error || "Something went wrong");
+    }
   };
 
   return (
