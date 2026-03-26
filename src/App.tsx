@@ -14,6 +14,7 @@ import Settings from "./pages/Settings";
 import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 import Unit from "./pages/Unit";
+import InProgressLessons from "./pages/InProgressLessons";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/lesson" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />
             <Route path="/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/lessons/in-progress" element={<ProtectedRoute><InProgressLessons /></ProtectedRoute>} />
             <Route path="/streaks" element={<ProtectedRoute><Streaks /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/about" element={<About />} />

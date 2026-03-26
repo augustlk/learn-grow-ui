@@ -6,15 +6,41 @@ interface AppMenuProps {
   onClose: () => void;
 }
 
-const menuItems = [
+export const menuItems = [
   { icon: User, label: "Profile", description: "View streaks, badges, progress", path: "/profile" },
   { icon: BookOpen, label: "Lessons", description: "What would you like to learn next?", path: "/" },
   { icon: Clock3, label: "In Progress", description: "Resume lessons where you left off", path: "/lessons/in-progress" },
   { icon: Flame, label: "Streaks", description: "Don't miss your daily goals!", path: "/streaks" },
   { icon: Settings, label: "Settings", description: "Adjust your preferences", path: "/settings" },
   { icon: Info, label: "About", description: "Learn about our mission", path: "/about" },
-  { icon: LogIn, label: "Sign In / Sign Up", description: "Create or access your account", path: "/login" },
+  { icon: LogIn, label: "Sign In / Sign Up", description: "Create or access your account", path: "/auth" },
 ];
+
+export const menuGroups = [
+  {
+    heading: "Learn",
+    items: [
+      { icon: BookOpen, label: "Lessons", description: "What would you like to learn next?", path: "/" },
+      { icon: Clock3, label: "In Progress", description: "Resume lessons where you left off", path: "/lessons/in-progress" },
+    ],
+  },
+  {
+    heading: "You",
+    items: [
+      { icon: User, label: "Profile", description: "View streaks, badges, progress", path: "/profile" },
+      { icon: Flame, label: "Streaks", description: "Don't miss your daily goals!", path: "/streaks" },
+    ],
+  },
+  {
+    heading: "Other",
+    items: [
+      { icon: Settings, label: "Settings", description: "Adjust your preferences", path: "/settings" },
+      { icon: Info, label: "About", description: "Learn about our mission", path: "/about" },
+    ],
+  },
+];
+
+export const authMenuItem = { icon: LogIn, label: "Sign In / Sign Up", description: "Create or access your account", path: "/auth" };
 
 const AppMenu = ({ isOpen, onClose }: AppMenuProps) => {
   const navigate = useNavigate();
@@ -50,22 +76,47 @@ const AppMenu = ({ isOpen, onClose }: AppMenuProps) => {
           </button>
         </div>
 
-        <nav className="p-3">
-          {menuItems.map((item) => (
+        <nav className="p-3 overflow-y-auto h-[calc(100%-73px)] flex flex-col">
+          <div className="flex-1">
+            {menuGroups.map((group, groupIndex) => (
+              <div key={group.heading} className={groupIndex > 0 ? "mt-6" : ""}>
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-3 mb-2">
+                  {group.heading}
+                </h3>
+                {group.items.map((item) => (
+                  <button
+                    key={item.label}
+                    onClick={() => handleNavigate(item.path)}
+                    className="w-full flex items-start gap-3 p-3 rounded-lg hover:bg-secondary transition-colors text-left group"
+                  >
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      <item.icon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground text-sm">{item.label}</p>
+                      <p className="text-xs text-muted-foreground">{item.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Auth Button at Bottom */}
+          <div className="mt-4 pt-4 border-t border-border">
             <button
-              key={item.label}
-              onClick={() => handleNavigate(item.path)}
+              onClick={() => handleNavigate(authMenuItem.path)}
               className="w-full flex items-start gap-3 p-3 rounded-lg hover:bg-secondary transition-colors text-left group"
             >
               <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                <item.icon className="w-4 h-4" />
+                <authMenuItem.icon className="w-4 h-4" />
               </div>
               <div>
-                <p className="font-semibold text-foreground text-sm">{item.label}</p>
-                <p className="text-xs text-muted-foreground">{item.description}</p>
+                <p className="font-semibold text-foreground text-sm">{authMenuItem.label}</p>
+                <p className="text-xs text-muted-foreground">{authMenuItem.description}</p>
               </div>
             </button>
-          ))}
+          </div>
         </nav>
       </div>
     </>

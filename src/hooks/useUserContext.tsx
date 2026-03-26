@@ -4,6 +4,9 @@ import { apiFetch } from "@/lib/api";
 interface User {
   user_id: number;
   email: string;
+  first_name?: string;
+  last_name?: string;
+  current_streak?: number;
   profile_picture?: string | null;
 }
 
