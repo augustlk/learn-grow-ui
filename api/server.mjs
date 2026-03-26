@@ -124,7 +124,7 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/auth/me', authMiddleware, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT user_id, email, profile_picture
+      `SELECT user_id, first_name, last_name, email, current_streak, profile_picture
        FROM Users
        WHERE user_id = $1`,
       [req.user.userId]
@@ -262,6 +262,270 @@ app.post('/api/users/:userId/lessons/:lessonId/complete', authMiddleware, async 
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ================= LESSON CARDS =================
+
+app.get('/api/lessons/:lessonId/cards', async (req, res) => {
+  try {
+    const { lessonId } = req.params;
+    const result = await pool.query(`
+      SELECT lc.card_id, lc.card_order, lc.card_text,
+             l.theme AS lesson_title, u.unit_title
+      FROM Lesson_Cards lc
+      JOIN Lessons l ON l.lesson_id = lc.lesson_id
+      JOIN Units u ON u.unit_id = l.unit_id
+      WHERE lc.lesson_id = $1
+      ORDER BY lc.card_order ASC
+    `, [lessonId]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ================= LESSON PROGRESS (GET) =================
+
+app.get('/api/users/:userId/lessons/:lessonId', authMiddleware, async (req, res) => {
+  if (!checkUser(req, res)) return;
+  try {
+    const { userId, lessonId } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM User_Lessons WHERE user_id = $1 AND lesson_id = $2',
+      [userId, lessonId]
+    );
+    res.json({ success: true, data: result.rows[0] || null });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ================= QUIZ =================
+
+app.get('/api/lessons/:lessonId/quiz', async (req, res) => {
+  try {
+    const { lessonId } = req.params;
+    const result = await pool.query(`
+      SELECT qq.question_id, qq.quiz_id, qq.question_order, qq.question_text,
+             qa.answer_id, qa.answer_text, qa.is_correct
+      FROM Quizzes q
+      JOIN Quiz_Questions qq ON qq.quiz_id = q.quiz_id
+      JOIN Quiz_Answers qa ON qa.question_id = qq.question_id
+      WHERE q.lesson_id = $1
+      ORDER BY qq.question_order ASC, qa.answer_id ASC
+    `, [lessonId]);
+
+    const questionsMap = new Map();
+    for (const row of result.rows) {
+      if (!questionsMap.has(row.question_id)) {
+        questionsMap.set(row.question_id, {
+          question_id: row.question_id,
+          quiz_id: row.quiz_id,
+          question_order: row.question_order,
+          question_text: row.question_text,
+          answers: [],
+        });
+      }
+      questionsMap.get(row.question_id).answers.push({
+        answer_id: row.answer_id,
+        answer_text: row.answer_text,
+        is_correct: row.is_correct,
+      });
+    }
+
+    res.json({ success: true, data: Array.from(questionsMap.values()) });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ================= QUIZ RESULT =================
+
+app.post('/api/users/:userId/quiz/:quizId/result', authMiddleware, async (req, res) => {
+  if (!checkUser(req, res)) return;
+  try {
+    const { userId, quizId } = req.params;
+    const { score, passed } = req.body;
+
+    await pool.query(`
+      INSERT INTO User_Quizzes (user_id, quiz_id, score, attempt_number, passed, best_score)
+      VALUES ($1, $2, $3, 1, $4, true)
+      ON CONFLICT (user_id, quiz_id) DO UPDATE
+        SET attempt_number = User_Quizzes.attempt_number + 1,
+            passed         = EXCLUDED.passed OR User_Quizzes.passed,
+            date_taken_at  = CURRENT_TIMESTAMP,
+            score          = CASE WHEN EXCLUDED.score > User_Quizzes.score THEN EXCLUDED.score ELSE User_Quizzes.score END,
+            best_score     = CASE WHEN EXCLUDED.score > User_Quizzes.score THEN true ELSE User_Quizzes.best_score END
+    `, [userId, quizId, score, passed]);
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ================= BADGES =================
+
+app.get('/api/badges', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM Badges ORDER BY badge_level ASC');
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/users/:userId/badges', authMiddleware, async (req, res) => {
+  if (!checkUser(req, res)) return;
+  try {
+    const { userId } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM User_Badges WHERE user_id = $1',
+      [userId]
+    );
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/users/:userId/badges/:badgeId/award', authMiddleware, async (req, res) => {
+  if (!checkUser(req, res)) return;
+  try {
+    const { userId, badgeId } = req.params;
+    await pool.query(`
+      INSERT INTO User_Badges (user_id, badge_id)
+      VALUES ($1, $2)
+      ON CONFLICT (user_id, badge_id) DO NOTHING
+    `, [userId, badgeId]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ================= USER STATS =================
+
+app.get('/api/users/:userId/stats', authMiddleware, async (req, res) => {
+  if (!checkUser(req, res)) return;
+  try {
+    const { userId } = req.params;
+
+    const [lessonsRes, quizzesRes, unitsRes, userRes] = await Promise.all([
+      pool.query(
+        `SELECT COUNT(*) AS count FROM User_Lessons WHERE user_id = $1 AND status = 'Completed'`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT
+           COUNT(*) FILTER (WHERE passed = true) AS passed,
+           COUNT(*) FILTER (WHERE passed = true AND score = (
+             SELECT num_of_questions FROM Quizzes WHERE quiz_id = uq.quiz_id
+           )) AS perfect
+         FROM User_Quizzes uq WHERE user_id = $1`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT DISTINCT l.unit_id
+         FROM User_Lessons ul
+         JOIN Lessons l ON l.lesson_id = ul.lesson_id
+         WHERE ul.user_id = $1 AND ul.status = 'Completed'
+           AND NOT EXISTS (
+             SELECT 1 FROM Lessons l2
+             WHERE l2.unit_id = l.unit_id
+               AND NOT EXISTS (
+                 SELECT 1 FROM User_Lessons ul2
+                 WHERE ul2.user_id = $1
+                   AND ul2.lesson_id = l2.lesson_id
+                   AND ul2.status = 'Completed'
+               )
+           )`,
+        [userId]
+      ),
+      pool.query('SELECT current_streak FROM Users WHERE user_id = $1', [userId]),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        completedLessons:    parseInt(lessonsRes.rows[0].count),
+        passedQuizzes:       parseInt(quizzesRes.rows[0].passed),
+        perfectScoreQuizzes: parseInt(quizzesRes.rows[0].perfect),
+        completedUnitIds:    unitsRes.rows.map((r) => r.unit_id),
+        currentStreak:       userRes.rows[0]?.current_streak ?? 0,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ================= PREFERENCES =================
+
+app.get('/api/users/:userId/preferences', authMiddleware, async (req, res) => {
+  if (!checkUser(req, res)) return;
+  try {
+    const { userId } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM user_preferences WHERE user_id = $1',
+      [userId]
+    );
+    const data = result.rows.length > 0
+      ? result.rows[0]
+      : { reminder_enabled: true, reminder_time: '09:00:00' };
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.patch('/api/users/:userId/preferences', authMiddleware, async (req, res) => {
+  if (!checkUser(req, res)) return;
+  try {
+    const { userId } = req.params;
+    const { reminder_enabled, reminder_time } = req.body;
+    await pool.query(`
+      INSERT INTO user_preferences (user_id, reminder_enabled, reminder_time)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (user_id) DO UPDATE
+        SET reminder_enabled = EXCLUDED.reminder_enabled,
+            reminder_time    = EXCLUDED.reminder_time
+    `, [userId, reminder_enabled, reminder_time]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ================= PROFILE PICTURE =================
+
+app.post('/api/users/:userId/profile-picture', authMiddleware, async (req, res) => {
+  if (!checkUser(req, res)) return;
+  try {
+    const { userId } = req.params;
+    const { profile_picture } = req.body;
+    await pool.query(
+      'UPDATE Users SET profile_picture = $1 WHERE user_id = $2',
+      [profile_picture, userId]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/users/:userId/profile-picture', authMiddleware, async (req, res) => {
+  if (!checkUser(req, res)) return;
+  try {
+    const { userId } = req.params;
+    await pool.query(
+      'UPDATE Users SET profile_picture = NULL WHERE user_id = $1',
+      [userId]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

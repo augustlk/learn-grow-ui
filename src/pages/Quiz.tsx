@@ -7,6 +7,7 @@ import { checkBadges } from "@/lib/checkBadges";
 import { toast } from "sonner";
 import { Check, X } from "lucide-react";
 import { useBackgroundMusic, useSound } from "@/hooks/useSound";
+import { getAuthHeaders } from "@/lib/api";
 
 // 80% of 5 questions = 4 correct needed to pass
 const PASSING_PERCENT = 80;
@@ -152,7 +153,7 @@ const Quiz = () => {
           `${apiUrl}/api/users/${user.user_id}/quiz/${quizId}/result`,
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
             body: JSON.stringify({ score, passed }),
           }
         );

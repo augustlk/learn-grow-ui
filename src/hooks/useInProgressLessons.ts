@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 export interface InProgressLesson {
   lesson_id: number;
@@ -26,16 +27,7 @@ export const useInProgressLessons = (userId: number | null) => {
     setError(null);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || "";
-      const response = await fetch(
-        `${apiUrl}/api/users/${userId}/lessons/in-progress?t=${Date.now()}`
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch in-progress lessons");
-      }
-
-      const data = await response.json();
+      const data = await apiFetch(`/users/${userId}/lessons/in-progress`);
       if (data.success && Array.isArray(data.data)) {
         setInProgressLessons(data.data);
       } else {

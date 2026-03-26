@@ -4,6 +4,7 @@ import { Bell, Moon, Clock, RotateCcw, ChevronRight, Volume2, Pencil } from "luc
 import { Switch } from "@/components/ui/switch";
 import { ReminderTimeDialog, formatDisplayTime } from "@/components/ReminderTimeDialog";
 import { useUser } from "@/hooks/useUserContext";
+import { getAuthHeaders } from "@/lib/api";
 
 const Settings = () => {
   const { user } = useUser();
@@ -37,7 +38,7 @@ const Settings = () => {
   useEffect(() => {
     if (!user?.user_id) return;
     const apiUrl = import.meta.env.VITE_API_URL || "";
-    fetch(`${apiUrl}/api/users/${user.user_id}/preferences`)
+    fetch(`${apiUrl}/api/users/${user.user_id}/preferences`, { headers: getAuthHeaders() })
       .then((r) => r.json())
       .then(({ data }) => {
         if (!data) return;
@@ -53,7 +54,7 @@ const Settings = () => {
     const apiUrl = import.meta.env.VITE_API_URL || "";
     await fetch(`${apiUrl}/api/users/${user.user_id}/preferences`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({ reminder_enabled: enabled, reminder_time: reminderTime }),
     }).catch(() => {});
   };
@@ -63,7 +64,7 @@ const Settings = () => {
     const apiUrl = import.meta.env.VITE_API_URL || "";
     await fetch(`${apiUrl}/api/users/${user.user_id}/preferences`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({ reminder_enabled: dailyReminder, reminder_time: time }),
     }).catch(() => {});
     setReminderTime(time);

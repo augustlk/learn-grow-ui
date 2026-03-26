@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { lessonContentMap } from "@/data/lessons";
 import { useUser } from "@/hooks/useUserContext";
 import { useBackgroundMusic } from "@/hooks/useSound";
+import { getAuthHeaders } from "@/lib/api";
 
 interface ApiCard {
   card_id: number;
@@ -137,7 +138,9 @@ const Lesson = () => {
     const apiUrl = import.meta.env.VITE_API_URL || "";
     const loadResumePosition = async () => {
       try {
-        const response = await fetch(`${apiUrl}/api/users/${user.user_id}/lessons/${lessonId}`);
+        const response = await fetch(`${apiUrl}/api/users/${user.user_id}/lessons/${lessonId}`, {
+          headers: { ...getAuthHeaders() },
+        });
         if (!response.ok) return;
 
         const payload = await response.json();
@@ -170,7 +173,7 @@ const Lesson = () => {
 
     fetch(`${apiUrl}/api/users/${user.user_id}/lessons/${lessonId}/progress`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({ last_card_viewed: currentSection }),
       signal: controller.signal,
     }).catch((err) => {
