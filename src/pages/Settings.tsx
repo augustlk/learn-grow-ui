@@ -4,6 +4,7 @@ import { Bell, Moon, Clock, RotateCcw, ChevronRight, Volume2, Pencil } from "luc
 import { Switch } from "@/components/ui/switch";
 import { ReminderTimeDialog, formatDisplayTime } from "@/components/ReminderTimeDialog";
 import { useUser } from "@/hooks/useUserContext";
+import { getAuthHeaders } from "@/lib/api";
 
 const Settings = () => {
   const { user } = useUser();
@@ -12,7 +13,10 @@ const Settings = () => {
     const saved = localStorage.getItem("darkMode");
     return saved ? JSON.parse(saved) : false;
   });
-  const [soundEffects, setSoundEffects] = useState(true);
+  const [soundEffects, setSoundEffects] = useState(() => {
+    const saved = localStorage.getItem("soundEffects");
+    return saved ? JSON.parse(saved) : true;
+  });
   const [dailyReminder, setDailyReminder] = useState(true);
   const [reminderTime, setReminderTime] = useState("09:00");
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
@@ -26,11 +30,15 @@ const Settings = () => {
     localStorage.setItem("darkMode", JSON.stringify(darkMode));
   }, [darkMode]);
 
+  useEffect(() => {
+    localStorage.setItem("soundEffects", JSON.stringify(soundEffects));
+  }, [soundEffects]);
+
   // Load preferences from backend on mount
   useEffect(() => {
     if (!user?.user_id) return;
     const apiUrl = import.meta.env.VITE_API_URL || "";
-    fetch(`${apiUrl}/api/users/${user.user_id}/preferences`)
+    fetch(`${apiUrl}/api/users/${user.user_id}/preferences`, { headers: getAuthHeaders() })
       .then((r) => r.json())
       .then(({ data }) => {
         if (!data) return;
@@ -46,7 +54,7 @@ const Settings = () => {
     const apiUrl = import.meta.env.VITE_API_URL || "";
     await fetch(`${apiUrl}/api/users/${user.user_id}/preferences`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({ reminder_enabled: enabled, reminder_time: reminderTime }),
     }).catch(() => {});
   };
@@ -56,7 +64,7 @@ const Settings = () => {
     const apiUrl = import.meta.env.VITE_API_URL || "";
     await fetch(`${apiUrl}/api/users/${user.user_id}/preferences`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({ reminder_enabled: dailyReminder, reminder_time: time }),
     }).catch(() => {});
     setReminderTime(time);

@@ -43,13 +43,15 @@ export async function checkBadges(
   currentStreak: number
 ): Promise<{ name: string; icon: string }[]> {
   const apiUrl = import.meta.env.VITE_API_URL || "";
+  const token = localStorage.getItem("token");
+  const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
 
   // Fetch all needed data in parallel
   const [allRes, earnedRes, lessonsRes, statsRes] = await Promise.all([
     fetch(`${apiUrl}/api/badges`),
-    fetch(`${apiUrl}/api/users/${userId}/badges`),
-    fetch(`${apiUrl}/api/users/${userId}/lessons`),
-    fetch(`${apiUrl}/api/users/${userId}/stats`),
+    fetch(`${apiUrl}/api/users/${userId}/badges`, { headers: authHeader }),
+    fetch(`${apiUrl}/api/users/${userId}/lessons`, { headers: authHeader }),
+    fetch(`${apiUrl}/api/users/${userId}/stats`, { headers: authHeader }),
   ]);
 
   const [allJson, earnedJson, lessonsJson, statsJson] = await Promise.all([
@@ -105,6 +107,7 @@ export async function checkBadges(
     toAward.map((badge) =>
       fetch(`${apiUrl}/api/users/${userId}/badges/${badge.badge_id}/award`, {
         method: "POST",
+        headers: authHeader,
       })
     )
   );

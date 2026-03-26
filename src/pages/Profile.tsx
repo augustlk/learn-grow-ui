@@ -7,6 +7,7 @@ import { useUserLessonsWithStatus } from "@/hooks/useUserLessonsWithStatus";
 import { useInProgressLessons } from "@/hooks/useInProgressLessons";
 import { ChevronRight, Camera, Trash2 } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
+import { getAuthHeaders } from "@/lib/api";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ const Profile = () => {
   useEffect(() => {
     if (!user?.user_id) return;
     const apiUrl = import.meta.env.VITE_API_URL || "";
-    fetch(`${apiUrl}/api/users/${user.user_id}/badges`)
+    fetch(`${apiUrl}/api/users/${user.user_id}/badges`, { headers: getAuthHeaders() })
       .then((r) => r.json())
       .then((data) => {
         if (data.success && Array.isArray(data.data)) {
@@ -69,7 +70,7 @@ const Profile = () => {
         const apiUrl = import.meta.env.VITE_API_URL || "";
         const response = await fetch(`${apiUrl}/api/users/${user.user_id}/profile-picture`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
           body: JSON.stringify({ profile_picture: base64 }),
         });
         const data = await response.json();
@@ -86,7 +87,7 @@ const Profile = () => {
     setUploading(true);
     try {
       const apiUrl = import.meta.env.VITE_API_URL || "";
-      const response = await fetch(`${apiUrl}/api/users/${user.user_id}/profile-picture`, { method: "DELETE" });
+      const response = await fetch(`${apiUrl}/api/users/${user.user_id}/profile-picture`, { method: "DELETE", headers: getAuthHeaders() });
       const data = await response.json();
       if (data.success) { updateProfilePicture(null); }
     } catch { alert("Failed to remove profile picture."); }

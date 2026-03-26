@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import { useUser } from "@/hooks/useUserContext";
+import { getAuthHeaders } from "@/lib/api";
 
 type Badge = {
   badge_id: number;
@@ -28,7 +29,7 @@ export default function Badges() {
 
         const [allRes, earnedRes] = await Promise.all([
           fetch(`${apiUrl}/api/badges`),
-          fetch(`${apiUrl}/api/users/${user!.user_id}/badges`),
+          fetch(`${apiUrl}/api/users/${user!.user_id}/badges`, { headers: getAuthHeaders() }),
         ]);
 
         const [allJson, earnedJson] = await Promise.all([

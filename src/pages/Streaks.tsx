@@ -1,7 +1,11 @@
+import { useEffect } from "react";
 import AppLayout from "@/components/AppLayout";
 import { Flame, Calendar, Trophy, Target } from "lucide-react";
+import { useSound } from "@/hooks/useSound";
 
 const Streaks = () => {
+  const { play } = useSound();
+  useEffect(() => { play("/sounds/streak.mp3"); }, []);
   const currentStreak = 12;
   const longestStreak = 18;
   const totalDaysActive = 34;
