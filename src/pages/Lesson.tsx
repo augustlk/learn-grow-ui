@@ -5,6 +5,7 @@ import eagleMascot from "@/assets/eagle-mascot.png";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { lessonContentMap } from "@/data/lessons";
 import { useUser } from "@/hooks/useUserContext";
+import { useBackgroundMusic } from "@/hooks/useSound";
 
 interface ApiCard {
   card_id: number;
@@ -82,6 +83,7 @@ const Lesson = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useUser();
+  useBackgroundMusic("/sounds/BackGround.mp3");
 
   const lessonIdParam = searchParams.get("lessonId");
   const lessonId = Number(lessonIdParam);

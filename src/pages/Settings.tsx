@@ -12,7 +12,10 @@ const Settings = () => {
     const saved = localStorage.getItem("darkMode");
     return saved ? JSON.parse(saved) : false;
   });
-  const [soundEffects, setSoundEffects] = useState(true);
+  const [soundEffects, setSoundEffects] = useState(() => {
+    const saved = localStorage.getItem("soundEffects");
+    return saved ? JSON.parse(saved) : true;
+  });
   const [dailyReminder, setDailyReminder] = useState(true);
   const [reminderTime, setReminderTime] = useState("09:00");
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
@@ -25,6 +28,10 @@ const Settings = () => {
     }
     localStorage.setItem("darkMode", JSON.stringify(darkMode));
   }, [darkMode]);
+
+  useEffect(() => {
+    localStorage.setItem("soundEffects", JSON.stringify(soundEffects));
+  }, [soundEffects]);
 
   // Load preferences from backend on mount
   useEffect(() => {

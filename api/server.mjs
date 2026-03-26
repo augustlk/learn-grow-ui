@@ -60,19 +60,26 @@ function checkUser(req, res) {
 // ================= AUTH =================
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, first_name, last_name } = req.body;
+
+    if (!email || !password || !first_name || !last_name) {
+      return res.status(400).json({ success: false, error: 'All fields are required.' });
+    }
 
     const hashed = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-      `INSERT INTO Users (email, password_hash)
-       VALUES ($1, $2)
+      `INSERT INTO Users (first_name, last_name, email, password_hash)
+       VALUES ($1, $2, $3, $4)
        RETURNING user_id, email`,
-      [email, hashed]
+      [first_name, last_name, email, hashed]
     );
 
     res.json({ success: true, user: result.rows[0] });
   } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ success: false, error: 'An account with that email already exists.' });
+    }
     res.status(500).json({ success: false, error: err.message });
   }
 });

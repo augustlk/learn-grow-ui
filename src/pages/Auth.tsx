@@ -12,20 +12,22 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const navigate = useNavigate();
+  const { login } = useUser();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    const { login } = useUser();
     e.preventDefault();
 
+    const apiUrl = import.meta.env.VITE_API_URL || "";
     const endpoint =
-      mode === "signin" ? "/api/auth/login" : "/api/auth/register";
+      mode === "signin" ? `${apiUrl}/api/auth/login` : `${apiUrl}/api/auth/register`;
 
     const body =
       mode === "signin"
         ? { email, password }
-        : { email, password };
+        : { email, password, first_name: firstName, last_name: lastName };
 
     const res = await fetch(endpoint, {
       method: "POST",
@@ -91,15 +93,27 @@ const Auth = () => {
         {/* Form */}
         <form onSubmit={handleSubmit} className="w-full max-w-xs mt-6 space-y-4">
           {mode === "signup" && (
-            <div className="space-y-1.5">
-              <Label htmlFor="name" className="text-xs font-bold text-foreground">Display Name</Label>
-              <Input
-                id="name"
-                placeholder="Your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="bg-card border-border"
-              />
+            <div className="flex gap-3">
+              <div className="space-y-1.5 flex-1">
+                <Label htmlFor="firstName" className="text-xs font-bold text-foreground">First Name</Label>
+                <Input
+                  id="firstName"
+                  placeholder="First"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="bg-card border-border"
+                />
+              </div>
+              <div className="space-y-1.5 flex-1">
+                <Label htmlFor="lastName" className="text-xs font-bold text-foreground">Last Name</Label>
+                <Input
+                  id="lastName"
+                  placeholder="Last"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="bg-card border-border"
+                />
+              </div>
             </div>
           )}
 

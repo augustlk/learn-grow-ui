@@ -6,6 +6,7 @@ import { useCompleteLesson } from "@/hooks/useCompleteLesson";
 import { checkBadges } from "@/lib/checkBadges";
 import { toast } from "sonner";
 import { Check, X } from "lucide-react";
+import { useBackgroundMusic, useSound } from "@/hooks/useSound";
 
 // 80% of 5 questions = 4 correct needed to pass
 const PASSING_PERCENT = 80;
@@ -48,6 +49,8 @@ const Quiz = () => {
   const { markLessonComplete } = useCompleteLesson();
   const [searchParams] = useSearchParams();
   const lessonId = parseInt(searchParams.get("lessonId") || "1");
+  const { play } = useSound();
+  useBackgroundMusic("/sounds/quiz.mp3");
 
   const [activeQuiz, setActiveQuiz] = useState<QuizQuestion[]>([]);
   const [loadingQuiz, setLoadingQuiz] = useState(true);
@@ -119,6 +122,9 @@ const Quiz = () => {
     setShowFeedback(true);
     if (index === question.correctIndex) {
       setScore((s) => s + 1);
+      play("/sounds/correct.mp3");
+    } else {
+      play("/sounds/error.mp3");
     }
   };
 
@@ -128,6 +134,7 @@ const Quiz = () => {
       setSelectedAnswer(null);
       setShowFeedback(false);
     } else {
+      play("/sounds/complete.mp3");
       setFinished(true);
     }
   };
@@ -159,6 +166,7 @@ const Quiz = () => {
       await markLessonComplete(user.user_id, lessonId);
       const newBadges = await checkBadges(user.user_id, user.current_streak);
       newBadges.forEach((badge) => {
+        play("/sounds/badge.mp3");
         toast(`${badge.icon} Badge unlocked: ${badge.name}!`);
       });
     }
