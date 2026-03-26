@@ -19,7 +19,7 @@ const LessonNode = ({ lesson, index }: LessonNodeProps) => {
     }
   };
 
-  const nodeSize = lesson.status === "locked" ? "w-12 h-12" : "w-16 h-16";
+  const nodeSize = lesson.status === "locked" ? "w-16 h-16" : "w-20 h-20";
 
   return (
     <div
@@ -42,11 +42,11 @@ const LessonNode = ({ lesson, index }: LessonNodeProps) => {
         }`}
       >
         {lesson.status === "completed" ? (
-          <Check className="w-6 h-6" strokeWidth={3} />
+          <Check className="w-8 h-8" strokeWidth={3} />
         ) : lesson.status === "active" ? (
-          <BookOpen className="w-6 h-6" />
+          <BookOpen className="w-8 h-8" />
         ) : (
-          <Lock className="w-5 h-5" />
+          <Lock className="w-7 h-7" />
         )}
       </button>
 
