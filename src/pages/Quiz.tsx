@@ -4,15 +4,13 @@ import AppLayout from "@/components/AppLayout";
 import { useUser } from "@/hooks/useUserContext";
 import { useCompleteLesson } from "@/hooks/useCompleteLesson";
 import { checkBadges } from "@/lib/checkBadges";
+import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 import { Check, X } from "lucide-react";
 import { useBackgroundMusic, useSound } from "@/hooks/useSound";
-import { getAuthHeaders } from "@/lib/api";
 
-// 80% of 5 questions = 4 correct needed to pass
 const PASSING_PERCENT = 80;
 
-// Shape returned by GET /api/lessons/:id/quiz
 interface ApiAnswer {
   answer_id: number;
   answer_text: string;
@@ -27,7 +25,6 @@ interface ApiQuestion {
   answers: ApiAnswer[];
 }
 
-// Normalised shape used internally
 interface QuizQuestion {
   question: string;
   options: string[];
@@ -49,7 +46,7 @@ const Quiz = () => {
   const { user } = useUser();
   const { markLessonComplete } = useCompleteLesson();
   const [searchParams] = useSearchParams();
-  const lessonId = parseInt(searchParams.get("lessonId") || "1");
+  const lessonId = parseInt(searchParams.get("lessonId") || "1", 10);
   const { play } = useSound();
   useBackgroundMusic("/sounds/quiz.mp3");
 
@@ -72,11 +69,9 @@ const Quiz = () => {
     setActiveQuiz([]);
     setLoadingQuiz(true);
 
-    const apiUrl = import.meta.env.VITE_API_URL || "";
-    fetch(`${apiUrl}/api/lessons/${lessonId}/quiz`)
-      .then((r) => r.json())
+    apiFetch(`/lessons/${lessonId}/quiz`)
       .then((data) => {
-        if (data.success && data.data.length > 0) {
+        if (data?.success && Array.isArray(data.data) && data.data.length > 0) {
           const normalised = normaliseQuestions(data.data);
           setActiveQuiz(normalised);
           setQuizId(data.data[0].quiz_id ?? null);
@@ -90,7 +85,7 @@ const Quiz = () => {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-64">
-          <p className="text-sm text-muted-foreground">Loading quiz…</p>
+          <p className="text-sm text-muted-foreground">Loading quiz...</p>
         </div>
       </AppLayout>
     );
@@ -121,6 +116,7 @@ const Quiz = () => {
     if (showFeedback) return;
     setSelectedAnswer(index);
     setShowFeedback(true);
+
     if (index === question.correctIndex) {
       setScore((s) => s + 1);
       play("/sounds/correct.mp3");
@@ -142,30 +138,28 @@ const Quiz = () => {
 
   const handleQuizComplete = async () => {
     if (!user) return;
+
     const pct = Math.round((score / activeQuiz.length) * 100);
     const passed = pct >= PASSING_PERCENT;
 
-    // Save quiz result to DB
     if (quizId) {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || "";
-        await fetch(
-          `${apiUrl}/api/users/${user.user_id}/quiz/${quizId}/result`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-            body: JSON.stringify({ score, passed }),
-          }
-        );
+        await apiFetch(`/users/${user.user_id}/quiz/${quizId}/result`, {
+          method: "POST",
+          body: JSON.stringify({ score, passed }),
+        });
       } catch (err) {
         console.error("Failed to save quiz result:", err);
       }
     }
 
-    // Mark lesson complete if passed, then check for newly earned badges
     if (passed) {
-      await markLessonComplete(user.user_id, lessonId);
-      const newBadges = await checkBadges(user.user_id, user.current_streak);
+      const completion = await markLessonComplete(user.user_id, lessonId);
+      const newBadges = await checkBadges(
+        user.user_id,
+        completion.currentStreak ?? user.current_streak ?? 0
+      );
+
       newBadges.forEach((badge) => {
         play("/sounds/badge.mp3");
         toast(`${badge.icon} Badge unlocked: ${badge.name}!`);
@@ -212,29 +206,29 @@ const Quiz = () => {
           </p>
 
           <div className="flex gap-3 w-full">
-  {passed ? (
-    <>
-      <button
-        onClick={async () => {
-          await handleQuizComplete();
-          setTimeout(() => navigate("/"), 300);
-        }}
-        className="flex-1 py-3 rounded-xl bg-card border border-border text-foreground font-semibold text-sm"
-      >
-        All Lessons
-      </button>
-      <button
-        onClick={async () => {
-          await handleQuizComplete();
-          setTimeout(() => navigate(`/lesson?lessonId=${lessonId + 1}`), 300);
-        }}
-        className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
-      >
-        Next Lesson →
-      </button>
-    </>
-  ) : (
-    <>
+            {passed ? (
+              <>
+                <button
+                  onClick={async () => {
+                    await handleQuizComplete();
+                    setTimeout(() => navigate("/"), 300);
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-card border border-border text-foreground font-semibold text-sm"
+                >
+                  All Lessons
+                </button>
+                <button
+                  onClick={async () => {
+                    await handleQuizComplete();
+                    setTimeout(() => navigate(`/lesson?lessonId=${lessonId + 1}`), 300);
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
+                >
+                  Next Lesson →
+                </button>
+              </>
+            ) : (
+              <>
                 <button
                   onClick={async () => {
                     await handleQuizComplete();
@@ -267,7 +261,6 @@ const Quiz = () => {
   return (
     <AppLayout>
       <div className="px-5 py-4 space-y-5">
-        {/* Progress dots */}
         <div>
           <p className="text-xs font-semibold text-muted-foreground mb-1.5 text-center">
             Quiz Progress
@@ -291,7 +284,6 @@ const Quiz = () => {
           </p>
         </div>
 
-        {/* Question card */}
         <div
           className="bg-card rounded-2xl p-6 card-elevated text-center animate-slide-up"
           key={currentQ}
@@ -301,20 +293,18 @@ const Quiz = () => {
           </p>
         </div>
 
-        {/* Answer options */}
         <div className="space-y-2.5">
           {question.options.map((opt, i) => {
             let optionStyle =
               "bg-card border-border text-card-foreground hover:border-primary/50";
+
             if (showFeedback) {
               if (i === question.correctIndex) {
                 optionStyle = "bg-success/10 border-success text-foreground";
               } else if (i === selectedAnswer && !isCorrect) {
-                optionStyle =
-                  "bg-destructive/10 border-destructive text-foreground";
+                optionStyle = "bg-destructive/10 border-destructive text-foreground";
               } else {
-                optionStyle =
-                  "bg-card border-border text-muted-foreground opacity-50";
+                optionStyle = "bg-card border-border text-muted-foreground opacity-50";
               }
             }
 
@@ -340,7 +330,6 @@ const Quiz = () => {
           })}
         </div>
 
-        {/* Feedback panel */}
         {showFeedback && (
           <div
             className={`rounded-xl p-4 animate-slide-up ${
@@ -355,7 +344,6 @@ const Quiz = () => {
           </div>
         )}
 
-        {/* Next button */}
         {showFeedback && (
           <button
             onClick={handleNext}
@@ -370,4 +358,3 @@ const Quiz = () => {
 };
 
 export default Quiz;
-

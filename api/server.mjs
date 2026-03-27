@@ -14,6 +14,7 @@ const app = express();
 const { Pool } = pg;
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_key';
+const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 // ================= DB =================
 const pool = new Pool({
@@ -49,12 +50,147 @@ function authMiddleware(req, res, next) {
 
 // helper for user ownership
 function checkUser(req, res) {
-  const paramId = parseInt(req.params.userId);
+  const paramId = parseInt(req.params.userId, 10);
   if (req.user.userId !== paramId) {
     res.status(403).json({ error: 'Unauthorized' });
     return false;
   }
   return true;
+}
+
+// ================= Streak helpers =================
+function toDayKey(value = new Date()) {
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function dayKeyToDate(dayKey) {
+  const [year, month, day] = dayKey.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function addDays(dayKey, amount) {
+  const date = dayKeyToDate(dayKey);
+  date.setDate(date.getDate() + amount);
+  return toDayKey(date);
+}
+
+function startOfWeek(dayKey) {
+  const date = dayKeyToDate(dayKey);
+  date.setDate(date.getDate() - date.getDay());
+  return toDayKey(date);
+}
+
+function buildStreakMetrics(dayKeys, referenceDayKey = toDayKey(new Date())) {
+  const uniqueSorted = Array.from(new Set((dayKeys || []).filter(Boolean))).sort();
+  const activeSet = new Set(uniqueSorted);
+
+  let longestStreak = 0;
+  let runningStreak = 0;
+
+  for (let i = 0; i < uniqueSorted.length; i += 1) {
+    if (i > 0 && addDays(uniqueSorted[i - 1], 1) === uniqueSorted[i]) {
+      runningStreak += 1;
+    } else {
+      runningStreak = 1;
+    }
+    longestStreak = Math.max(longestStreak, runningStreak);
+  }
+
+  let currentStreak = 0;
+  if (uniqueSorted.length > 0) {
+    const lastActiveDay = uniqueSorted[uniqueSorted.length - 1];
+    const yesterday = addDays(referenceDayKey, -1);
+
+    if (lastActiveDay === referenceDayKey || lastActiveDay === yesterday) {
+      currentStreak = 1;
+      for (let i = uniqueSorted.length - 1; i > 0; i -= 1) {
+        if (addDays(uniqueSorted[i - 1], 1) === uniqueSorted[i]) {
+          currentStreak += 1;
+        } else {
+          break;
+        }
+      }
+    }
+  }
+
+  const weekStart = startOfWeek(referenceDayKey);
+  const thisWeek = WEEKDAY_LABELS.map((label, index) => {
+    const dayKey = addDays(weekStart, index);
+    return {
+      dayKey,
+      label,
+      active: activeSet.has(dayKey),
+      isToday: dayKey === referenceDayKey,
+    };
+  });
+
+  return {
+    currentStreak,
+    longestStreak,
+    totalActiveDays: uniqueSorted.length,
+    daysThisWeek: thisWeek.filter((day) => day.active).length,
+    weeklyGoal: 5,
+    thisWeek,
+    activeDayKeys: uniqueSorted,
+  };
+}
+
+function buildCalendar(dayKeys, referenceDayKey = toDayKey(new Date()), weeks = 5) {
+  const activeSet = new Set(dayKeys);
+  const currentWeekStart = startOfWeek(referenceDayKey);
+  const calendarStart = addDays(currentWeekStart, -7 * (weeks - 1));
+  const currentMonth = dayKeyToDate(referenceDayKey).getMonth();
+
+  return Array.from({ length: weeks * 7 }, (_, index) => {
+    const dayKey = addDays(calendarStart, index);
+    const date = dayKeyToDate(dayKey);
+
+    return {
+      dayKey,
+      dayNumber: date.getDate(),
+      weekday: date.toLocaleDateString('en-US', { weekday: 'short' }),
+      monthLabel: date.toLocaleDateString('en-US', { month: 'short' }),
+      active: activeSet.has(dayKey),
+      isToday: dayKey === referenceDayKey,
+      isCurrentMonth: date.getMonth() === currentMonth,
+    };
+  });
+}
+
+async function getUserActivityDayKeys(client, userId) {
+  const result = await client.query(
+    `
+      SELECT completed_at
+      FROM User_Lessons
+      WHERE user_id = $1
+        AND completed_at IS NOT NULL
+      ORDER BY completed_at ASC
+    `,
+    [userId]
+  );
+
+  return result.rows.map((row) => toDayKey(row.completed_at));
+}
+
+async function syncUserStreakMetrics(client, userId) {
+  const dayKeys = await getUserActivityDayKeys(client, userId);
+  const metrics = buildStreakMetrics(dayKeys);
+
+  await client.query(
+    `
+      UPDATE Users
+      SET current_streak = $1,
+          max_streak = $2
+      WHERE user_id = $3
+    `,
+    [metrics.currentStreak, metrics.longestStreak, userId]
+  );
+
+  return metrics;
 }
 
 // ================= AUTH =================
@@ -98,7 +234,6 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const user = result.rows[0];
-
     const valid = await bcrypt.compare(password, user.password_hash);
 
     if (!valid) {
@@ -123,25 +258,36 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.get('/api/auth/me', authMiddleware, async (req, res) => {
   try {
+    const userId = req.user.userId;
+    const streakMetrics = await syncUserStreakMetrics(pool, userId);
+
     const result = await pool.query(
-      `SELECT user_id, first_name, last_name, email, current_streak, profile_picture
-       FROM Users
-       WHERE user_id = $1`,
-      [req.user.userId]
+      `
+        SELECT user_id, first_name, last_name, email, profile_picture
+        FROM Users
+        WHERE user_id = $1
+      `,
+      [userId]
     );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json({ success: true, user: result.rows[0] });
+    res.json({
+      success: true,
+      user: {
+        ...result.rows[0],
+        current_streak: streakMetrics.currentStreak,
+        max_streak: streakMetrics.longestStreak,
+      },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 // ================= API =================
-
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
@@ -183,7 +329,6 @@ app.get('/api/units', async (req, res) => {
 });
 
 // ================= USER ROUTES (PROTECTED) =================
-
 app.get('/api/users/:userId/lessons', authMiddleware, async (req, res) => {
   if (!checkUser(req, res)) return;
 
@@ -249,24 +394,80 @@ app.post('/api/users/:userId/lessons/:lessonId/progress', authMiddleware, async 
 app.post('/api/users/:userId/lessons/:lessonId/complete', authMiddleware, async (req, res) => {
   if (!checkUser(req, res)) return;
 
+  const client = await pool.connect();
+
   try {
     const { userId, lessonId } = req.params;
 
-    await pool.query(`
-      INSERT INTO User_Lessons (user_id, lesson_id, status, completed_at)
-      VALUES ($1, $2, 'Completed', CURRENT_TIMESTAMP)
-      ON CONFLICT (user_id, lesson_id)
-      DO UPDATE SET status = 'Completed', completed_at = CURRENT_TIMESTAMP
-    `, [userId, lessonId]);
+    await client.query('BEGIN');
 
-    res.json({ success: true });
+    const existingResult = await client.query(
+      `
+        SELECT user_lesson_id, completed_at
+        FROM User_Lessons
+        WHERE user_id = $1 AND lesson_id = $2
+        FOR UPDATE
+      `,
+      [userId, lessonId]
+    );
+
+    let completedAt;
+
+    if (existingResult.rows.length === 0) {
+      const insertResult = await client.query(
+        `
+          INSERT INTO User_Lessons (user_id, lesson_id, status, completed_at)
+          VALUES ($1, $2, 'Completed', CURRENT_TIMESTAMP)
+          RETURNING completed_at
+        `,
+        [userId, lessonId]
+      );
+      completedAt = insertResult.rows[0].completed_at;
+    } else if (existingResult.rows[0].completed_at) {
+      await client.query(
+        `
+          UPDATE User_Lessons
+          SET status = 'Completed'
+          WHERE user_id = $1 AND lesson_id = $2
+        `,
+        [userId, lessonId]
+      );
+      completedAt = existingResult.rows[0].completed_at;
+    } else {
+      const updateResult = await client.query(
+        `
+          UPDATE User_Lessons
+          SET status = 'Completed',
+              completed_at = CURRENT_TIMESTAMP
+          WHERE user_id = $1 AND lesson_id = $2
+          RETURNING completed_at
+        `,
+        [userId, lessonId]
+      );
+      completedAt = updateResult.rows[0].completed_at;
+    }
+
+    const streakMetrics = await syncUserStreakMetrics(client, Number(userId));
+
+    await client.query('COMMIT');
+
+    res.json({
+      success: true,
+      data: {
+        completedAt,
+        currentStreak: streakMetrics.currentStreak,
+        maxStreak: streakMetrics.longestStreak,
+      },
+    });
   } catch (error) {
+    await client.query('ROLLBACK');
     res.status(500).json({ success: false, error: error.message });
+  } finally {
+    client.release();
   }
 });
 
 // ================= LESSON CARDS =================
-
 app.get('/api/lessons/:lessonId/cards', async (req, res) => {
   try {
     const { lessonId } = req.params;
@@ -286,7 +487,6 @@ app.get('/api/lessons/:lessonId/cards', async (req, res) => {
 });
 
 // ================= LESSON PROGRESS (GET) =================
-
 app.get('/api/users/:userId/lessons/:lessonId', authMiddleware, async (req, res) => {
   if (!checkUser(req, res)) return;
   try {
@@ -302,7 +502,6 @@ app.get('/api/users/:userId/lessons/:lessonId', authMiddleware, async (req, res)
 });
 
 // ================= QUIZ =================
-
 app.get('/api/lessons/:lessonId/quiz', async (req, res) => {
   try {
     const { lessonId } = req.params;
@@ -341,7 +540,6 @@ app.get('/api/lessons/:lessonId/quiz', async (req, res) => {
 });
 
 // ================= QUIZ RESULT =================
-
 app.post('/api/users/:userId/quiz/:quizId/result', authMiddleware, async (req, res) => {
   if (!checkUser(req, res)) return;
   try {
@@ -366,7 +564,6 @@ app.post('/api/users/:userId/quiz/:quizId/result', authMiddleware, async (req, r
 });
 
 // ================= BADGES =================
-
 app.get('/api/badges', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM Badges ORDER BY badge_level ASC');
@@ -399,20 +596,29 @@ app.post('/api/users/:userId/badges/:badgeId/award', authMiddleware, async (req,
       VALUES ($1, $2)
       ON CONFLICT (user_id, badge_id) DO NOTHING
     `, [userId, badgeId]);
-    res.json({ success: true });
+
+    const streakMetrics = await syncUserStreakMetrics(pool, Number(userId));
+
+    res.json({
+      success: true,
+      data: {
+        currentStreak: streakMetrics.currentStreak,
+        maxStreak: streakMetrics.longestStreak,
+      },
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
 // ================= USER STATS =================
-
 app.get('/api/users/:userId/stats', authMiddleware, async (req, res) => {
   if (!checkUser(req, res)) return;
   try {
     const { userId } = req.params;
+    const streakMetrics = await syncUserStreakMetrics(pool, Number(userId));
 
-    const [lessonsRes, quizzesRes, unitsRes, userRes] = await Promise.all([
+    const [lessonsRes, quizzesRes, unitsRes] = await Promise.all([
       pool.query(
         `SELECT COUNT(*) AS count FROM User_Lessons WHERE user_id = $1 AND status = 'Completed'`,
         [userId]
@@ -443,17 +649,42 @@ app.get('/api/users/:userId/stats', authMiddleware, async (req, res) => {
            )`,
         [userId]
       ),
-      pool.query('SELECT current_streak FROM Users WHERE user_id = $1', [userId]),
     ]);
 
     res.json({
       success: true,
       data: {
-        completedLessons:    parseInt(lessonsRes.rows[0].count),
-        passedQuizzes:       parseInt(quizzesRes.rows[0].passed),
-        perfectScoreQuizzes: parseInt(quizzesRes.rows[0].perfect),
-        completedUnitIds:    unitsRes.rows.map((r) => r.unit_id),
-        currentStreak:       userRes.rows[0]?.current_streak ?? 0,
+        completedLessons: parseInt(lessonsRes.rows[0].count, 10),
+        passedQuizzes: parseInt(quizzesRes.rows[0].passed, 10),
+        perfectScoreQuizzes: parseInt(quizzesRes.rows[0].perfect, 10),
+        completedUnitIds: unitsRes.rows.map((r) => r.unit_id),
+        currentStreak: streakMetrics.currentStreak,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ================= STREAKS =================
+app.get('/api/users/:userId/streaks', authMiddleware, async (req, res) => {
+  if (!checkUser(req, res)) return;
+
+  try {
+    const { userId } = req.params;
+    const streakMetrics = await syncUserStreakMetrics(pool, Number(userId));
+    const calendar = buildCalendar(streakMetrics.activeDayKeys);
+
+    res.json({
+      success: true,
+      data: {
+        currentStreak: streakMetrics.currentStreak,
+        longestStreak: streakMetrics.longestStreak,
+        totalDaysActive: streakMetrics.totalActiveDays,
+        daysThisWeek: streakMetrics.daysThisWeek,
+        weeklyGoal: streakMetrics.weeklyGoal,
+        thisWeek: streakMetrics.thisWeek,
+        calendar,
       },
     });
   } catch (err) {
@@ -462,7 +693,6 @@ app.get('/api/users/:userId/stats', authMiddleware, async (req, res) => {
 });
 
 // ================= PREFERENCES =================
-
 app.get('/api/users/:userId/preferences', authMiddleware, async (req, res) => {
   if (!checkUser(req, res)) return;
   try {
@@ -499,7 +729,6 @@ app.patch('/api/users/:userId/preferences', authMiddleware, async (req, res) => 
 });
 
 // ================= PROFILE PICTURE =================
-
 app.post('/api/users/:userId/profile-picture', authMiddleware, async (req, res) => {
   if (!checkUser(req, res)) return;
   try {
