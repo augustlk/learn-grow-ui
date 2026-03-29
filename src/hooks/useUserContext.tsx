@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
 import { apiFetch } from "@/lib/api";
 
 interface User {
@@ -7,14 +7,16 @@ interface User {
   first_name?: string;
   last_name?: string;
   current_streak?: number;
+  max_streak?: number;
   profile_picture?: string | null;
 }
 
 interface UserContextType {
   user: User | null;
   loading: boolean;
-  login: (token: string, userId: number) => void;
+  login: (token: string, userId: number) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
   updateProfilePicture: (base64: string | null) => void;
 }
 
@@ -24,39 +26,43 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔥 Load user on app start
-  useEffect(() => {
+  const refreshUser = useCallback(async () => {
     const token = localStorage.getItem("token");
 
     if (!token) {
+      setUser(null);
       setLoading(false);
       return;
     }
 
-    apiFetch("/auth/me")
-      .then((data) => {
+    setLoading(true);
+
+    try {
+      const data = await apiFetch("/auth/me");
+      if (data?.success) {
         setUser(data.user);
-      })
-      .catch(() => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("userId");
+      } else {
         setUser(null);
-      })
-      .finally(() => setLoading(false));
+      }
+    } catch {
+      localStorage.removeItem("token");
+      localStorage.removeItem("userId");
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // 🔐 Login handler
-  const login = (token: string, userId: number) => {
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
+
+  const login = useCallback(async (token: string, userId: number) => {
     localStorage.setItem("token", token);
     localStorage.setItem("userId", userId.toString());
+    await refreshUser();
+  }, [refreshUser]);
 
-    // fetch fresh user
-    apiFetch("/auth/me").then((data) => {
-      setUser(data.user);
-    });
-  };
-
-  // 🔓 Logout handler
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
@@ -71,7 +77,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <UserContext.Provider
-      value={{ user, loading, login, logout, updateProfilePicture }}
+      value={{ user, loading, login, logout, refreshUser, updateProfilePicture }}
     >
       {children}
     </UserContext.Provider>
