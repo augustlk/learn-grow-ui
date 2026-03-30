@@ -9,10 +9,20 @@ function isSoundEnabled(): boolean {
   }
 }
 
+function getSoundVolume(): number {
+  try {
+    const saved = localStorage.getItem("soundVolume");
+    return saved ? parseInt(saved, 10) / 100 : 0.7;
+  } catch {
+    return 0.7;
+  }
+}
+
 export function useSound() {
   const play = useCallback((src: string) => {
     if (!isSoundEnabled()) return;
     const audio = new Audio(src);
+    audio.volume = getSoundVolume();
     audio.play().catch(() => {});
   }, []);
 
@@ -27,7 +37,7 @@ export function useBackgroundMusic(src: string) {
 
     const audio = new Audio(src);
     audio.loop = true;
-    audio.volume = 0.4;
+    audio.volume = getSoundVolume() * 0.4; // bg music quieter relative to volume
     audioRef.current = audio;
     audio.play().catch(() => {});
 

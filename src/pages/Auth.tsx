@@ -14,11 +14,14 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const { login } = useUser();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
 
     const apiUrl = import.meta.env.VITE_API_URL || "";
     const endpoint =
@@ -29,31 +32,30 @@ const Auth = () => {
         ? { email, password }
         : { email, password, first_name: firstName, last_name: lastName };
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-    const data = await res.json();
-
-    if (data.token) {
-      // LOGIN
-      login(data.token, data.userId);
+      const data = await res.json();
 
       if (data.token) {
-        login(data.token, data.userId);
-
+        await login(data.token, data.userId);
         const redirect = localStorage.getItem("redirectAfterLogin") || "/";
-        localStorage.removeItem("redirectAfterLogin");  // clear it after use
+        localStorage.removeItem("redirectAfterLogin");
         navigate(redirect);
-}
-    } else if (data.success) {
-      // REGISTER → auto switch to login
-      alert("Account created! Please sign in.");
-      setMode("signin");
-    } else {
-      alert(data.error || "Something went wrong");
+      } else if (data.success) {
+        alert("Account created! Please sign in.");
+        setMode("signin");
+      } else {
+        alert(data.error || "Something went wrong");
+      }
+    } catch {
+      alert("Network error. Please check your connection and try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -160,8 +162,8 @@ const Auth = () => {
             </button>
           )}
 
-          <Button type="submit" className="w-full font-bold text-sm h-12 rounded-xl">
-            {mode === "signin" ? "Sign In" : "Create Account"}
+          <Button type="submit" disabled={submitting} className="w-full font-bold text-sm h-12 rounded-xl">
+            {submitting ? "Please wait…" : mode === "signin" ? "Sign In" : "Create Account"}
           </Button>
         </form>
 
