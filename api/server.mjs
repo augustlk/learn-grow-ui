@@ -4,7 +4,7 @@ import express from 'express';
 import cors from 'cors';
 import pg from 'pg';
 import dotenv from 'dotenv';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 dotenv.config();
@@ -29,6 +29,10 @@ const pool = new Pool({
 // ================= Middleware =================
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+app.use('/api', (_req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
 
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
